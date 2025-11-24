@@ -1,86 +1,88 @@
-import tkinter as tk
-from tkinter import messagebox
-from PIL import Image, ImageTk
-import pygame
-import time
-import random
-import json
-import os
+import tkinter as tk  # Main GUI library for windows and buttons
+from tkinter import messagebox  # To show pop-up alerts
+from PIL import Image, ImageTk  # To handle and resize images
+import pygame  # For background music and sound effects
+import time  # To handle timers and delays
+import random  # To generate random math questions
+import json  # To save leaderboard data to a file
+import os  # To check if files exist
 
 
 
-#  MAIN CONTROLLER CLASS (The Brain of the App)
+
+#  MAIN CONTROLLER (The Brain of the App)
 
 class MathQuizApp(tk.Tk):
+    """
+    This is the main class that controls the whole app.
+    It holds shared data like score, user name, and handles page switching.
+    """
     def __init__(self):
         super().__init__()
 
         # --- Window Setup ---
         self.title("Maths Quiz")
         self.geometry("1200x700")
-        self.resizable(False, False)
+        self.resizable(False, False)  # Keep window size fixed
         
+        # Try to load the window icon
         try:
             self.iconphoto(False, tk.PhotoImage(file="root-icon.png"))
         except: pass
 
-        # --- Audio Init ---
+        # --- Sound Setup ---
         pygame.mixer.init()
-        self.clock_channel = None # Specific channel for clock sound
+        self.clock_channel = None # Separate channel for the ticking sound
 
-        # --- Shared Game State ---
+        # --- Game Variables ---
         self.user_name = "Player"
         self.difficulty = 1
         self.score = 0
         self.attempts_left = 2
         self.current_question_num = 0
         
-        # --- Container for Pages ---
+        # --- Container Frame ---
+        # This frame holds all the pages (layers)
         self.container = tk.Frame(self)
         self.container.pack(fill="both", expand=True)
         
-        # Dictionary to hold all page objects
-        self.frames = {}
+        self.frames = {} # Storage for all our page objects
         
-        # Initialize all pages
+        # Create all pages and stack them
         for F in (WelcomePage, InstructionPage, NamePage, DifficultyPage, QuizPage, ResultPage):
             page_name = F.__name__
             frame = F(parent=self.container, controller=self)
             self.frames[page_name] = frame
             frame.place(x=0, y=0, width=1200, height=700)
 
-        # Start the App - INSTANT SHOW (No Slide for First Page)
+        # Show the first page immediately 
         self.show_frame("WelcomePage", instant=True)
         self.play_bg_music()
 
-    # --- NAVIGATION WITH SLIDE ANIMATION ---
+    # --- Navigation Logic ---
     def show_frame(self, page_name, instant=False):
-        """Slides the new frame in from the right side."""
+        """Brings the selected page to the front with an optional slide effect."""
         frame = self.frames[page_name]
         frame.tkraise()
         
         if instant:
-            # Show immediately without animation (For App Startup)
-            frame.place(x=0, y=0, width=1200, height=700)
+            frame.place(x=0, y=0, width=1200, height=700) # Show instantly
         else:
-            # 1. Place frame off-screen to the right
-            frame.place(x=1200, y=0, width=1200, height=700)
-            # 2. Animate sliding to x=0
-            self.slide_animation(frame, 1200)
+            frame.place(x=1200, y=0, width=1200, height=700) # Start off-screen
+            self.slide_animation(frame, 1200) # Slide in
 
     def slide_animation(self, frame, current_x):
+        """Moves the frame from right to left smoothly."""
         if current_x > 0:
-            # Move left by 45 pixels (speed of slide)
-            new_x = current_x - 45
+            new_x = current_x - 45  # Slide speed
             frame.place(x=new_x, y=0)
-            # Repeat every 10ms
             self.after(10, lambda: self.slide_animation(frame, new_x))
         else:
-            # Snap to final position
-            frame.place(x=0, y=0)
+            frame.place(x=0, y=0) # Lock in place
 
-    # --- AUDIO MANAGERS ---
+    # --- Audio Functions ---
     def play_bg_music(self):
+        """Plays background music in a loop."""
         try:
             if not pygame.mixer.music.get_busy():
                 pygame.mixer.music.load("welcome.mp3")
@@ -89,6 +91,7 @@ class MathQuizApp(tk.Tk):
         except: pass
 
     def play_sfx(self, file):
+        """Plays a short sound effect."""
         try:
             sfx = pygame.mixer.Sound(file)
             sfx.set_volume(1.0)
@@ -99,10 +102,11 @@ class MathQuizApp(tk.Tk):
         pygame.mixer.music.stop()
         pygame.mixer.stop()
 
-#  BASE PAGE CLASS (Helper for UI consistency)
 
+#  BASE PAGE (Helper Class)
 
 class BasePage(tk.Frame):
+    """Parent class to give every page a canvas and button effects."""
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
@@ -110,11 +114,12 @@ class BasePage(tk.Frame):
         self.canvas.pack(fill="both", expand=True)
         
     def add_button_effects(self, btn):
+        """Adds hover color change and click sounds to buttons."""
         original_color = btn['bg']
         highlight_color = "#7d4e4e"
 
         def on_enter(e):
-            if btn['bg'] != "#FFD700":
+            if btn['bg'] != "#FFD700": # Ignore for yellow hint button
                 btn['background'] = highlight_color
         def on_leave(e):
             if btn['bg'] != "#FFD700":
@@ -127,8 +132,7 @@ class BasePage(tk.Frame):
         btn.bind("<Button-1>", on_click, add="+")
 
 
-
-#  PAGE 1: WELCOME
+#  PAGE 1: WELCOME SCREEN
 
 class WelcomePage(BasePage):
     def __init__(self, parent, controller):
@@ -139,25 +143,23 @@ class WelcomePage(BasePage):
         except: 
             self.canvas.config(bg="#452929")
 
-        # Create button but place it off-screen first
+        # Start button setup (Animation starts below screen)
         self.start_btn = tk.Button(self, text="Let's Begin →", font=("Comic Sans MS", 24, "bold"), 
                                    bg="#452929", fg="white", cursor="hand2", 
                                    command=lambda: controller.show_frame("InstructionPage"))
         self.add_button_effects(self.start_btn)
         
-        # Initial position (y=720 is below the screen)
         self.btn_window = self.canvas.create_window(600, 720, window=self.start_btn)
-        
-        # Start the float up animation
-        self.animate_button_entry(720)
+        self.animate_button_entry(720) # Trigger animation
 
     def animate_button_entry(self, y_pos):
-        """Makes the button float up from the bottom."""
+        """Floats the button up from the bottom."""
         target_y = 580
         if y_pos > target_y:
-            y_pos -= 5  # Move up by 5 pixels
+            y_pos -= 5
             self.canvas.coords(self.btn_window, 600, y_pos)
             self.after(10, lambda: self.animate_button_entry(y_pos))
+
 
 
 #  PAGE 2: INSTRUCTIONS
@@ -170,6 +172,7 @@ class InstructionPage(BasePage):
             self.canvas.create_image(0, 0, image=self.bg_img, anchor="nw")
         except: self.canvas.config(bg="black")
 
+        # Adding instruction text
         font_inst = ("Comic Sans MS", 18, "bold")
         self.canvas.create_text(342, 355, text="•10 questions per round\n•10 points-1st try correct\n•5 points-2nd try correct", font=font_inst, fill="white", justify="center")
         self.canvas.create_text(608, 512, text=" • Easy-1 digit numbers\n• Moderate-2 digits\n• Advanced-4 digits", font=font_inst, fill="white", justify="center")
@@ -182,8 +185,7 @@ class InstructionPage(BasePage):
 
 
 
-
-#  PAGE 3: NAME ENTRY
+#  PAGE 3: NAME INPUT
 
 class NamePage(BasePage):
     def __init__(self, parent, controller):
@@ -208,6 +210,7 @@ class NamePage(BasePage):
         self.add_button_effects(next_btn)
 
     def save_name_and_next(self):
+        """Checks if name is empty before proceeding."""
         typed = self.name_entry.get().strip()
         if typed == "":
             messagebox.showwarning("Name Required", "Please enter your name!")
@@ -217,8 +220,7 @@ class NamePage(BasePage):
 
 
 
-
-#  PAGE 4: DIFFICULTY
+#  PAGE 4: DIFFICULTY SELECTION
 
 class DifficultyPage(BasePage):
     def __init__(self, parent, controller):
@@ -230,10 +232,13 @@ class DifficultyPage(BasePage):
 
         btn_font = ("Comic Sans MS", 22, "bold")
         
+        # Difficulty buttons (1=Easy, 2=Moderate, 3=Advanced)
         btn_easy = tk.Button(self, text="Easy (1 digit)", font=btn_font, bg="#452929", fg="white", width=15, 
                              cursor="hand2", command=lambda: self.start_game(1))
+        
         btn_mod = tk.Button(self, text="Moderate (2 digits)", font=btn_font, bg="#452929", fg="white", width=15, 
                             cursor="hand2", command=lambda: self.start_game(2))
+        
         btn_adv = tk.Button(self, text="Advanced (4 digits)", font=btn_font, bg="#452929", fg="white", width=15, 
                             cursor="hand2", command=lambda: self.start_game(3))
         
@@ -249,6 +254,7 @@ class DifficultyPage(BasePage):
             self.add_button_effects(b)
 
     def start_game(self, level):
+        """Sets difficulty and resets score before starting."""
         self.controller.difficulty = level
         self.controller.score = 0
         self.controller.current_question_num = 0
@@ -256,12 +262,7 @@ class DifficultyPage(BasePage):
         self.controller.show_frame("QuizPage")
 
 
-
-
-
-
-
-#  PAGE 5: QUIZ GAME
+#  PAGE 5: MAIN QUIZ LOGIC
 
 class QuizPage(BasePage):
     def __init__(self, parent, controller):
@@ -275,7 +276,7 @@ class QuizPage(BasePage):
         self.timer_seconds = 12
         self.correct_answer = 0
 
-        # UI Elements
+        # Draw UI text
         self.id_heading = self.canvas.create_text(590, 129, text="Question 1 / 10", font=("Comic Sans MS", 24, "bold"), fill="#452929")
         self.id_score = self.canvas.create_text(200, 110, text="Score: 0", font=("Comic Sans MS", 22, "bold"), fill="white")
         self.id_timer = self.canvas.create_text(990, 112, text="Time: 12s", font=("Comic Sans MS", 22, "bold"), fill="white")
@@ -286,18 +287,19 @@ class QuizPage(BasePage):
         self.entry_answer = tk.Entry(self, font=("Arial", 30), width=12, justify="center")
         self.entry_answer.place(x=425, y=400, width=300, height=60)
 
+        # Action Buttons
         btn_hint = tk.Button(self, text=" Hint", font=("Arial", 12, "bold"), bg="#FFD700", fg="black", 
                              cursor="hand2", command=self.show_hint)
         btn_submit = tk.Button(self, text="Submit", font=("Comic Sans MS", 20, "bold"), width=10, bg="#3b5a2c", 
                                fg="white", cursor="hand2", command=self.check_answer)
         
-        # --- Back Button Added Here (Bottom Left) ---
+        # Back Button logic
         btn_back = tk.Button(self, text="← Back", font=("Comic Sans MS", 16, "bold"), bg="#5a2c2c", fg="white", 
                              width=8, cursor="hand2", command=self.go_back)
 
         self.canvas.create_window(790, 430, window=btn_hint)
         self.canvas.create_window(580, 576, window=btn_submit)
-        self.canvas.create_window(180, 595, window=btn_back) # Placed at bottom left
+        self.canvas.create_window(180, 595, window=btn_back) 
         
         self.add_button_effects(btn_hint)
         self.add_button_effects(btn_submit)
@@ -310,7 +312,7 @@ class QuizPage(BasePage):
         self.next_question()
 
     def go_back(self):
-        """Handles going back to Difficulty selection and stopping current game."""
+        """Stops game and goes back to difficulty menu."""
         self.timer_running = False
         self.stop_clock_sound()
         self.controller.show_frame("DifficultyPage")
@@ -320,6 +322,7 @@ class QuizPage(BasePage):
             self.controller.clock_channel.stop()
 
     def next_question(self):
+        """Generates a new question based on difficulty."""
         self.stop_clock_sound()
         
         if self.controller.current_question_num < 10:
@@ -329,6 +332,7 @@ class QuizPage(BasePage):
             self.timer_running = True
 
             dif = self.controller.difficulty
+            # Difficulty Logic
             if dif == 1: num1, num2 = random.randint(1, 9), random.randint(1, 9)
             elif dif == 2: num1, num2 = random.randint(10, 99), random.randint(10, 99)
             else: num1, num2 = random.randint(1000, 9999), random.randint(1000, 9999)
@@ -338,10 +342,11 @@ class QuizPage(BasePage):
                 self.correct_answer = num1 + num2
                 q_text = f"{num1} + {num2} = ?"
             else:
-                if num1 < num2: num1, num2 = num2, num1
+                if num1 < num2: num1, num2 = num2, num1 # Avoid negative results
                 self.correct_answer = num1 - num2
                 q_text = f"{num1} - {num2} = ?"
 
+            # Update UI
             self.canvas.itemconfigure(self.id_heading, text=f"Question {self.controller.current_question_num} / 10")
             self.canvas.itemconfigure(self.id_main_q, text=q_text)
             self.canvas.itemconfigure(self.id_score, text=f"Score: {self.controller.score}")
@@ -354,19 +359,19 @@ class QuizPage(BasePage):
             
             self.countdown_timer()
         else:
-            # --- AUTOMATIC TRANSITION TO RESULTS ---
+            # End of Game - Transition to Results
             self.timer_running = False
             self.stop_clock_sound()
             self.controller.stop_all_sounds()
             self.controller.play_sfx("gameover.mp3")
-            # Wait 1 second then show results automatically
             self.after(1000, self.go_to_results)
 
     def countdown_timer(self):
         if self.timer_running:
             if self.timer_seconds > 0:
-                fg_color = "#ff4444" if self.timer_seconds <= 5 else "white"
+                fg_color = "#ac1d1d" if self.timer_seconds <= 5 else "white"
                 
+                # Play tick-tock sound at 5 seconds left
                 if self.timer_seconds == 5:
                     try:
                         clock_sound = pygame.mixer.Sound("clock.wav")
@@ -377,6 +382,7 @@ class QuizPage(BasePage):
                 self.timer_seconds -= 1
                 self.after(1000, self.countdown_timer)
             else:
+                # Time's up logic
                 self.timer_running = False
                 self.stop_clock_sound()
                 self.canvas.itemconfigure(self.id_timer, text="Time's Up!", fill="red")
@@ -385,6 +391,7 @@ class QuizPage(BasePage):
                 self.after(2000, self.next_question)
 
     def check_answer(self):
+        """Validates user answer and updates score."""
         user_input = self.entry_answer.get()
         if not user_input.strip(): return
 
@@ -426,6 +433,7 @@ class QuizPage(BasePage):
         self.canvas.itemconfigure(self.id_hint, text=hint_msg, fill="#FFD700")
 
     def shake_entry(self):
+        """Visual feedback for wrong answer."""
         original_x = 425
         offsets = [-10, 10, -8, 8, -5, 5, 0]
         delay = 50
@@ -448,10 +456,7 @@ class QuizPage(BasePage):
         self.controller.show_frame("ResultPage")
 
 
-
-
-
-#  PAGE 6: RESULTS
+#  PAGE 6: RESULTS & LEADERBOARD
 
 class ResultPage(BasePage):
     def __init__(self, parent, controller):
@@ -463,6 +468,7 @@ class ResultPage(BasePage):
             self.canvas.create_image(0, 0, image=self.bg_img, anchor="nw")
         except: self.canvas.config(bg="#1a3a2a")
 
+        # Layout calculations for the result card
         frame_width, frame_height = 560, 375
         frame_x = (1210 - frame_width) // 2
         frame_y = (740 - frame_height) // 2 + 20
@@ -487,6 +493,7 @@ class ResultPage(BasePage):
         self.add_button_effects(btn_exit)
 
     def show_results(self):
+        """Displays final score, grade and triggers animations."""
         score = self.controller.score
         if score >= 90:
             grade, color, msg = "A+ (Math Wizard)", "#FFD700", f"Outstanding, {self.controller.user_name}!"
@@ -511,11 +518,13 @@ class ResultPage(BasePage):
         self.after(3000, lambda: pygame.mixer.music.play(-1))
 
     def animate_score_count(self, current, target):
+        """Counts score up visually."""
         if current <= target:
             self.canvas.itemconfigure(self.id_final_score, text=f"Your Score: {current} / 100")
             self.after(20, lambda: self.animate_score_count(current + 1, target))
 
     def update_leaderboard_file(self):
+        """Saves score to JSON file."""
         file = "leaderboard.json"
         data = []
         if os.path.exists(file):
@@ -536,6 +545,7 @@ class ResultPage(BasePage):
         self.canvas.itemconfigure(self.id_leaderboard, text=text)
 
     def start_confetti(self):
+        """Spawns confetti particles."""
         colors = ['#FFD700', '#FF0000', '#00FF00', '#00FFFF', '#FF00FF']
         self.confetti_particles.clear()
         for _ in range(80):
@@ -552,7 +562,6 @@ class ResultPage(BasePage):
             if self.canvas.coords(p["id"])[1] > 700:
                 self.canvas.move(p["id"], 0, -800)
         self.after(25, self.animate_confetti_loop)
-
 
 
 #  RUN APPLICATION
