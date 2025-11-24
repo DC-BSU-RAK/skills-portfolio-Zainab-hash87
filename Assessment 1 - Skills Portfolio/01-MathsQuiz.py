@@ -8,8 +8,6 @@ import json  # To save leaderboard data to a file
 import os  # To check if files exist
 
 
-
-
 #  MAIN CONTROLLER (The Brain of the App)
 
 class MathQuizApp(tk.Tk):
