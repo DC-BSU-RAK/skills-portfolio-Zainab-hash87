@@ -159,7 +159,6 @@ class WelcomePage(BasePage):
             self.after(10, lambda: self.animate_button_entry(y_pos))
 
 
-
 #  PAGE 2: INSTRUCTIONS
 
 class InstructionPage(BasePage):
@@ -180,7 +179,6 @@ class InstructionPage(BasePage):
                              cursor="hand2", command=lambda: controller.show_frame("NamePage"))
         self.canvas.create_window(1015, 597, window=next_btn)
         self.add_button_effects(next_btn)
-
 
 
 #  PAGE 3: NAME INPUT
@@ -215,7 +213,6 @@ class NamePage(BasePage):
             return
         self.controller.user_name = typed
         self.controller.show_frame("DifficultyPage")
-
 
 
 #  PAGE 4: DIFFICULTY SELECTION
@@ -560,7 +557,6 @@ class ResultPage(BasePage):
             if self.canvas.coords(p["id"])[1] > 700:
                 self.canvas.move(p["id"], 0, -800)
         self.after(25, self.animate_confetti_loop)
-
 
 #  RUN APPLICATION
 
