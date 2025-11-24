@@ -262,18 +262,28 @@ def update_leaderboard():
     leaderboard_file = "leaderboard.json"
     data = []
     
+    # Try to read existing data
     if os.path.exists(leaderboard_file):
         try:
             with open(leaderboard_file, "r") as f:
                 data = json.load(f)
         except:
-            pass
+            data = []
     
-    data.append({"name": user_name, "score": score})
+    # Add new score
+    new_entry = {"name": user_name, "score": score}
+    data.append(new_entry)
+    
+    # Sort by score (highest first) and keep top 3
     data = sorted(data, key=lambda x: x["score"], reverse=True)[:3]
     
-    with open(leaderboard_file, "w") as f:
-        json.dump(data, f)
+    # Save back to file
+    try:
+        with open(leaderboard_file, "w") as f:
+            json.dump(data, f, indent=4)
+    except:
+        pass
+    
     return data
 
 # ==============================================================================
@@ -334,11 +344,11 @@ def show_results():
         if score >= 90:
             grade = "A+ (Math Wizard)"
             color = "#FFD700"
-            msg = f"🌟 Outstanding, {user_name}! 🌟"
+            msg = f"Outstanding, {user_name}!"
         else:
             grade = "B (Math Pro)"
             color = "#00FF00"
-            msg = f"✨ Excellent Work, {user_name}! ✨"
+            msg = f"Excellent Work, {user_name}!"
     else:
         play_sfx("sad.mp3")
         if score >= 50:
@@ -347,15 +357,15 @@ def show_results():
         else:
             grade = "D (Keep Practicing)"
             color = "#FF4444"
-        msg = f"💪 Keep Going, {user_name}!"
+        msg = f"Keep Going, {user_name}!"
         root.after(4000, lambda: pygame.mixer.music.play(-1))
 
     canvas6.itemconfigure(id_rank_text, text=msg)
     canvas6.itemconfigure(id_grade_text, text=f"Grade: {grade}", fill=color)
     
     top_scores = update_leaderboard()
-    lb_text = "🏆 TOP 3 SCORERS 🏆\n\n"
-    medals = ["🥇", "🥈", "🥉"]
+    lb_text = "TOP 3 SCORERS\n\n"
+    medals = ["1st", "2nd", "3rd"]
     for idx, player in enumerate(top_scores):
         medal = medals[idx] if idx < 3 else ""
         lb_text += f"{medal} {player['name']} : {player['score']} pts\n"
@@ -409,8 +419,16 @@ except: pass
 page3 = tk.Frame(root); page3.place(relwidth=1, relheight=1)
 def save_name_and_next():
     global user_name
-    user_name = name_entry.get()
-    if user_name.strip() == "": user_name = "Player"
+    typed = name_entry.get().strip()
+
+    # Prevent empty name
+    if typed == "":
+        messagebox.showwarning("Name Required", "Please enter your name!")
+        return
+
+    user_name = typed  # Save correct name
+    print("Name saved:", user_name)  # Debug check
+
     show_frame(page4)
 try:
     bg3 = ImageTk.PhotoImage(Image.open("03-name.png").resize((1200, 700)))
@@ -547,7 +565,7 @@ btn_play_again = tk.Button(page6, text=" Play Again",
                            width=9,
                            cursor="hand2", 
                            command=lambda: show_frame(page4))
-canvas6.create_window(410, 540, window=btn_play_again)  # ✅ X=400, Y=600
+canvas6.create_window(410, 540, window=btn_play_again)
 add_button_effects(btn_play_again)
 
 btn_exit = tk.Button(page6, text="Exit", 
@@ -556,10 +574,8 @@ btn_exit = tk.Button(page6, text="Exit",
                      width=9,
                      cursor="hand2", 
                      command=root.quit)
-canvas6.create_window(810, 540, window=btn_exit)  # ✅ X=700, Y=600
+canvas6.create_window(810, 540, window=btn_exit)
 add_button_effects(btn_exit)
-
-
 
 # ---------------- START APP -------------------
 page1.tkraise()
