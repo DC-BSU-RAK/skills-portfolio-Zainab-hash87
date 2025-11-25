@@ -1,197 +1,271 @@
 import tkinter as tk
 from tkinter import messagebox
 import random
-import os
+import pyttsx3
+import pygame
 import threading
-import pygame  # For sound effects
+import time
+import os  # For Smart Paths (Fixes Missing File Error)
 
-# --- Voice Setup ---
-try:
-    import pyttsx3
-    engine = pyttsx3.init()
-    engine.setProperty('rate', 150)
-    engine.setProperty('volume', 1.0)
-except:
-    engine = None
-
-# ==============================================================================
-#  CUSTOM IMAGE BUTTON CLASS
-# ==============================================================================
-class ImageButton(tk.Canvas):
-    """
-    Creates a button that blends into the design or uses a custom shape/color
-    to match the background image positions.
-    """
-    def __init__(self, parent, text, bg_color, command, width=260, height=55):
-        super().__init__(parent, width=width, height=height, bg="#FDF6E3", highlightthickness=0)
+# --- CUSTOM ROUNDED BUTTON CLASS (Pink Pill Shape) ---
+class RoundedButton(tk.Canvas):
+    def __init__(self, parent, width, height, corner_radius, padding, color, text, command, text_color="black"):
+        tk.Canvas.__init__(self, parent, borderwidth=0, relief="flat", highlightthickness=0, bg="#f0e4d0")
         self.command = command
-        self.default_color = bg_color
-        self.hover_color = self.lighten_color(bg_color)
-        self.text_str = text
+        self.color = color
+        self.width = width
+        self.height = height
+        self.padding = padding
+        self.text = text
+        self.corner_radius = corner_radius
+
+        # Resize canvas to fit shadow offset
+        self.configure(width=width + padding, height=height + padding)
         
-        # We set the background of the canvas to match the beige of your image
-        # Adjust "bg" in super().__init__ if your image background isn't exactly #FDF6E3
+        # Initial Draw
+        self.draw_button()
+
+        # Bind mouse events for click effect
+        self.bind("<ButtonPress-1>", self._on_press)
+        self.bind("<ButtonRelease-1>", self._on_release)
+
+    def draw_button(self, offset_x=0, offset_y=0):
+        self.delete("all") # Clear previous drawings
         
-        # Draw Pill Shape
-        self.rect = self.create_rounded_rect(5, 5, width-5, height-5, 25, fill=bg_color, outline="black", width=3)
-        self.text_id = self.create_text(width/2, height/2, text=text, font=("Comic Sans MS", 14, "bold"), fill="white")
+        # Draw Shadow (Black) - Fixed position
+        self.create_polygon(
+            self.round_rect(self.padding, self.padding, self.width, self.height, self.corner_radius),
+            fill="black", outline="black"
+        )
         
-        # Bind Events
-        self.bind("<Button-1>", self.on_click)
-        self.bind("<Enter>", self.on_enter)
-        self.bind("<Leave>", self.on_leave)
+        # Draw Main Button (Color) - Moves on click
+        self.id = self.create_polygon(
+            self.round_rect(offset_x, offset_y, self.width, self.height, self.corner_radius),
+            fill=self.color, outline="black", width=2
+        )
+        
+        # Draw Text - Moves with button
+        self.text_id = self.create_text(
+            self.width/2 + offset_x, 
+            self.height/2 + offset_y, 
+            text=self.text, 
+            fill="white", 
+            font=("Comic Sans MS", 12, "bold")
+        )
 
-    def create_rounded_rect(self, x1, y1, x2, y2, r, **kwargs):
-        points = (x1+r, y1, x1+r, y1, x2-r, y1, x2-r, y1, x2, y1, x2, y1+r, x2, y1+r, x2, y2-r, x2, y2-r, x2, y2, x2-r, y2, x2-r, y2, x1+r, y2, x1+r, y2, x1, y2, x1, y2-r, x1, y2-r, x1, y1+r, x1, y1+r, x1, y1)
-        return self.create_polygon(points, **kwargs, smooth=True)
+    def round_rect(self, x, y, w, h, r):
+        return (x+r, y, x+w-r, y, x+w, y+r, x+w, y+h-r, x+w-r, y+h, x+r, y+h, x, y+h-r, x, y+r)
 
-    def on_click(self, e):
-        if self.command: self.command()
+    def _on_press(self, event):
+        # Move visual down to simulate press
+        self.draw_button(offset_x=self.padding, offset_y=self.padding)
 
-    def on_enter(self, e):
-        self.itemconfig(self.rect, fill=self.hover_color)
+    def _on_release(self, event):
+        # Move visual back up
+        self.draw_button(offset_x=0, offset_y=0)
+        if self.command:
+            self.command()
+            
+    def change_color(self, new_color):
+        self.color = new_color
+        self.draw_button()
 
-    def on_leave(self, e):
-        self.itemconfig(self.rect, fill=self.default_color)
+# --- MAIN APPLICATION CLASS ---
+class PopArtJokeApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Joke Time")
+        self.root.geometry("400x650")
+        self.root.resizable(False, False)
 
-    def lighten_color(self, color):
-        if color == "#FF0099": return "#FF66B2" # Pink
-        if color == "#FFEB3B": return "#FFF59D" # Yellow
-        if color == "#00E5FF": return "#84FFFF" # Cyan
-        return color
+        # --- 1. SMART PATH SETUP (The Critical Fix) ---
+        # Finds the exact folder where this script is located
+        self.base_path = os.path.dirname(os.path.abspath(__file__))
 
-# ==============================================================================
-#  MAIN APPLICATION
-# ==============================================================================
-class JokeApp(tk.Tk):
-    def __init__(self):
-        super().__init__()
+        # --- 2. THEME COLORS ---
+        self.bg_color = "#f0e4d0"      # Graph paper beige
+        self.btn_color = "#ff4bb5"     # Pop-art Pink
+        self.display_bg = "#fffbf0"    # Off-white for text box
+        self.grid_color = "#dcd3c2"    # Light lines
 
-        # --- Window Config ---
-        self.title("Alexa Joke Assistant")
-        self.geometry("450x800") # Adjusted for your tall image
-        self.resizable(False, False)
-
-        # --- Load Background Image ---
-        # We use a Canvas to hold the image and overlay text/buttons
-        self.canvas = tk.Canvas(self, width=450, height=800, highlightthickness=0)
-        self.canvas.pack(fill="both", expand=True)
-
-        try:
-            self.bg_image = tk.PhotoImage(file="background.png")
-            self.canvas.create_image(0, 0, image=self.bg_image, anchor="nw")
-        except:
-            self.canvas.config(bg="pink") # Fallback if image fails
-            self.canvas.create_text(225, 400, text="Image Not Found", font=("Arial", 20))
-
-        # --- Setup Audio ---
+        # --- 3. INITIALIZE ENGINES ---
         pygame.mixer.init()
+        self.engine = pyttsx3.init()
+        try:
+            # Try to set a female voice if available
+            voices = self.engine.getProperty('voices')
+            self.engine.setProperty('voice', voices[1].id) 
+        except:
+            pass
+        self.engine.setProperty('rate', 150)
 
-        # --- Data ---
+        # --- 4. BUILD UI (Before loading data to prevent crash) ---
+        self.create_background_grid()
+        self.setup_ui()
+
+        # --- 5. LOAD RESOURCES ---
+        self.check_files() # Print status to terminal
         self.jokes_list = []
+        self.current_joke = None
         self.load_jokes()
-
-        # --- UI Elements (Overlay on Canvas) ---
-        self.setup_ui_overlays()
         
-        # --- Start Interaction ---
-        self.speak_threaded("Hi, I am Alexa. Ready to laugh?")
+        # Startup Greeting
+        threading.Thread(target=self.speak, args=("Welcome to Joke Time!",)).start()
 
-    def setup_ui_overlays(self):
-        """Places text and buttons on top of the background image."""
+    def get_resource_path(self, filename):
+        """Joins the script's folder path with the filename"""
+        return os.path.join(self.base_path, filename)
+
+    def check_files(self):
+        """Debugs file locations in the terminal"""
+        files = ["drum.wav", "laugh.mp3", "laugh-icon.png", "randomJokes.txt"]
+        print("\n--- CHECKING FILES ---")
+        for f in files:
+            full_path = self.get_resource_path(f)
+            if os.path.exists(full_path):
+                print(f"✅ Found: {f}")
+            else:
+                print(f"❌ MISSING: {f} (Expected at: {full_path})")
+        print("----------------------\n")
+
+        # Set Window Icon
+        icon_path = self.get_resource_path("laugh-icon.png")
+        if os.path.exists(icon_path):
+            try:
+                icon = tk.PhotoImage(file=icon_path)
+                self.root.iconphoto(False, icon)
+            except Exception as e:
+                print(f"Icon Error: {e}")
+
+    def create_background_grid(self):
+        """Draws the graph paper background"""
+        self.canvas = tk.Canvas(self.root, width=400, height=650, bg=self.bg_color, highlightthickness=0)
+        self.canvas.place(x=0, y=0)
         
-        # 1. Setup Text Area (Inside the White Box of your image)
-        # Adjust coordinates (x, y) to fit inside the white box of your specific image
-        self.setup_text = self.canvas.create_text(225, 300, text="Click 'Tell me a joke'!", 
-                                                  width=320, font=("Arial", 16, "bold"), 
-                                                  fill="#333", justify="center")
+        # Draw Grid Lines
+        for i in range(0, 400, 30):
+            self.canvas.create_line(i, 0, i, 650, fill=self.grid_color)
+        for i in range(0, 650, 30):
+            self.canvas.create_line(0, i, 400, i, fill=self.grid_color)
+
+    def setup_ui(self):
+        # -- TITLE (Shadow Effect) --
+        self.canvas.create_text(203, 63, text="JOKE TIME", font=("Impact", 36), fill="black") # Shadow
+        self.canvas.create_text(200, 60, text="JOKE TIME", font=("Impact", 36), fill=self.btn_color) # Pink Text
+
+        # -- DISPLAY BOX (Rounded Rectangle) --
+        x1, y1, x2, y2 = 40, 130, 360, 330
+        radius = 20
         
-        # 2. Punchline Text (Inside the same box, below setup)
-        self.punch_text = self.canvas.create_text(225, 400, text="", 
-                                                  width=320, font=("Comic Sans MS", 18, "bold"), 
-                                                  fill="#FF0099", justify="center")
+        # Shadow Box (Black)
+        self.round_rectangle(self.canvas, x1+5, y1+5, x2+5, y2+5, radius, fill="black")
+        # Main Box (White)
+        self.round_rectangle(self.canvas, x1, y1, x2, y2, radius, fill=self.display_bg, outline="black", width=2)
 
-        # 3. Buttons (Placed over the pink bars in your image)
-        # Note: Since your image has pink bars drawn, we can either:
-        # A) Place our custom buttons ON TOP of them (easiest for interaction)
-        # B) Use transparent rectangles if you just want the image's buttons (harder to click)
-        # We will use Custom RoundedButtons that match the style to ensure they are clickable.
+        # Labels inside the box
+        self.lbl_setup = tk.Label(self.root, text="Ready to laugh?", font=("Comic Sans MS", 13, "bold"), 
+                                  bg=self.display_bg, fg="black", wraplength=280, justify="center")
+        self.lbl_setup.place(x=50, y=150, width=300)
 
-        # Button 1: Tell Joke (Pink) - Matches bottom area
-        self.btn_tell = ImageButton(self, "Alexa, tell me a joke", "#FF0099", self.tell_joke)
-        # Use .place() to position it exactly over the first pink bar in your image
-        self.btn_tell_window = self.canvas.create_window(225, 520, window=self.btn_tell) 
+        self.lbl_punchline = tk.Label(self.root, text="", font=("Comic Sans MS", 12, "italic"), 
+                                      bg=self.display_bg, fg=self.btn_color, wraplength=280, justify="center")
+        self.lbl_punchline.place(x=50, y=240, width=300)
 
-        # Button 2: Show Punchline (Yellow) - Initially Hidden
-        self.btn_punch = ImageButton(self, "Show Punchline", "#FFEB3B", self.show_punchline)
-        # This will replace the first button when needed
+        # -- CUSTOM BUTTONS --
+        btn_x = 100
         
-        # Button 3: Next Joke (Cyan) - Initially Hidden
-        self.btn_next = ImageButton(self, "Next Joke", "#00E5FF", self.tell_joke)
+        self.btn_joke = RoundedButton(self.root, 200, 50, 25, 5, self.btn_color, 
+                                      "TELL ME A JOKE", self.tell_joke)
+        self.btn_joke.place(x=btn_x, y=360)
 
-        # Quit Button (Small black button at bottom)
-        self.btn_quit = tk.Button(self, text="Quit", bg="black", fg="white", 
-                                  font=("Arial", 10, "bold"), command=self.quit, relief="flat")
-        self.canvas.create_window(225, 750, window=self.btn_quit)
+        self.btn_punch = RoundedButton(self.root, 200, 50, 25, 5, "#bfbfbf", 
+                                       "SHOW PUNCHLINE", self.reveal_punchline)
+        self.btn_punch.place(x=btn_x, y=440)
 
-    # ---------------- Logic & Interaction ----------------
+        self.btn_quit = RoundedButton(self.root, 200, 50, 25, 5, self.btn_color, 
+                                      "QUIT", self.root.destroy)
+        self.btn_quit.place(x=btn_x, y=520)
+
+    # Helper function to draw rounded shapes on canvas
+    def round_rectangle(self, canvas, x1, y1, x2, y2, radius=25, **kwargs):
+        points = [x1+radius, y1, x1+radius, y1, x2-radius, y1, x2-radius, y1, x2, y1,
+                  x2, y1+radius, x2, y1+radius, x2, y2-radius, x2, y2-radius, x2, y2,
+                  x2-radius, y2, x2-radius, y2, x1+radius, y2, x1+radius, y2, x1, y2,
+                  x1, y2-radius, x1, y2-radius, x1, y1+radius, x1, y1+radius, x1, y1]
+        return canvas.create_polygon(points, **kwargs, smooth=True)
+
     def load_jokes(self):
+        file_path = self.get_resource_path("randomJokes.txt")
         try:
-            with open("randomJokes.txt", "r", encoding="utf-8") as f:
-                self.jokes_list = [l.strip() for l in f if "?" in l]
-        except: self.jokes_list = []
-
-    def play_sound(self, file):
-        """Plays sound effect safely."""
-        try:
-            if os.path.exists(file):
-                pygame.mixer.Sound(file).play()
-        except: pass
-
-    def speak_threaded(self, text):
-        """Non-blocking voice."""
-        def run():
-            if engine:
-                engine.say(text)
-                engine.runAndWait()
-        threading.Thread(target=run, daemon=True).start()
+            with open(file_path, "r") as file:
+                lines = file.readlines()
+                for line in lines:
+                    parts = line.strip().split('?')
+                    if len(parts) == 2:
+                        self.jokes_list.append(parts)
+        except FileNotFoundError:
+            self.lbl_setup.config(text="Error: randomJokes.txt missing!\nCheck terminal.")
 
     def tell_joke(self):
         if not self.jokes_list: return
         
-        joke = random.choice(self.jokes_list)
-        parts = joke.split("?")
-        self.current_setup = parts[0] + "?"
-        self.current_punchline = parts[1] if len(parts) > 1 else ""
-
-        # Update Text
-        self.canvas.itemconfig(self.setup_text, text=self.current_setup)
-        self.canvas.itemconfig(self.punch_text, text="")
-
-        # Swap Buttons: Remove Tell/Next -> Show Punchline
-        self.canvas.delete(self.btn_tell_window) # Remove current button window
-        # Create window for punchline button at same position (520 is approx y for first bar)
-        self.btn_tell_window = self.canvas.create_window(225, 520, window=self.btn_punch)
+        # Reset UI
+        self.lbl_punchline.config(text="")
+        self.btn_punch.change_color(self.btn_color) # Enable pink color
         
-        # Fix text color for yellow button visibility
-        self.canvas.itemconfig(self.btn_punch.text_id, fill="black")
-
-        self.speak_threaded(self.current_setup)
-
-    def show_punchline(self):
-        # Show Text
-        self.canvas.itemconfig(self.punch_text, text=self.current_punchline)
+        # Pick Joke
+        self.current_joke = random.choice(self.jokes_list)
+        setup_text = self.current_joke[0] + "?"
         
-        # Play Sounds
+        # Animate & Speak
+        self.typewriter_effect(self.lbl_setup, setup_text)
+        threading.Thread(target=self.speak, args=(setup_text,)).start()
+
+    def reveal_punchline(self):
+        if not self.current_joke: return
+        
+        # Play Drum
         self.play_sound("drum.wav")
-        self.after(1000, lambda: self.play_sound("laughter.mp3"))
-
-        # Swap Buttons: Remove Punchline -> Show Next
-        self.canvas.delete(self.btn_tell_window)
-        self.btn_tell_window = self.canvas.create_window(225, 520, window=self.btn_next)
         
-        self.speak_threaded(self.current_punchline)
+        # Show Text
+        punch_text = self.current_joke[1]
+        self.typewriter_effect(self.lbl_punchline, punch_text)
+        
+        # Disable button visually (Grey out)
+        self.btn_punch.change_color("#bfbfbf")
+
+        # Sequence: Speak -> Laugh
+        def audio_sequence():
+            self.speak(punch_text)
+            time.sleep(0.5)
+            self.play_sound("laugh.mp3")
+        threading.Thread(target=audio_sequence).start()
+
+    def typewriter_effect(self, widget, text, index=0):
+        if index < len(text):
+            widget.config(text=text[:index+1])
+            self.root.after(30, self.typewriter_effect, widget, text, index+1)
+        else:
+            widget.config(text=text)
+
+    def speak(self, text):
+        try:
+            self.engine.say(text)
+            self.engine.runAndWait()
+        except: pass
+
+    def play_sound(self, filename):
+        file_path = self.get_resource_path(filename)
+        if os.path.exists(file_path):
+            try:
+                pygame.mixer.music.load(file_path)
+                pygame.mixer.music.play()
+            except Exception as e:
+                print(f"Audio Error: {e}")
+        else:
+            print(f"Audio File Not Found: {file_path}")
 
 if __name__ == "__main__":
-    app = JokeApp()
-    app.mainloop()
+    root = tk.Tk()
+    app = PopArtJokeApp(root)
+    root.mainloop()
