@@ -46,13 +46,15 @@ class PopArtJokeApp:
         self.jokes_list = []
         self.current_joke = None
         self.emojis = [] 
-        self.btns = {} # Dictionary to store button IDs for color changing
+        self.btns = {} # Stores button data for animations
+        
         self.prepare_emoji_image()
         self.load_jokes()
         
         # --- UI BUILD ---
-        self.setup_background() # Draws BG and Buttons directly
+        self.setup_background() 
         self.setup_text_labels()
+        self.setup_buttons() 
         
         # Intro
         threading.Thread(target=self.speak, args=("Hello! Ready to laugh?",)).start()
@@ -78,18 +80,16 @@ class PopArtJokeApp:
             print(f"{'✅' if os.path.exists(path) else '❌'} {f}")
         print("----------------------\n")
         
-        # Icon
         icon_path = self.get_resource_path("laugh-icon.png")
         if os.path.exists(icon_path):
             try: self.root.iconphoto(False, tk.PhotoImage(file=icon_path))
             except: pass
 
     def setup_background(self):
-        # Single Canvas for EVERYTHING
+        # Single Canvas for EVERYTHING (Transparent effect)
         self.canvas = tk.Canvas(self.root, width=400, height=650, highlightthickness=0, bg="#f0e4d0")
         self.canvas.pack(fill="both", expand=True)
 
-        # Draw BG Image
         img_path = self.get_resource_path("bg.png")
         if os.path.exists(img_path):
             pil_image = Image.open(img_path)
@@ -99,13 +99,7 @@ class PopArtJokeApp:
         else:
             self.canvas.create_text(200, 300, text="bg.png MISSING", font=("Arial", 20))
 
-        # Draw Buttons directly on this canvas (Transparent Look)
-        self.create_canvas_button(100, 400, 200, 55, "#ff4bb5", "TELL ME A JOKE", "joke", self.tell_joke)
-        self.create_canvas_button(100, 480, 200, 55, "#bfbfbf", "SHOW PUNCHLINE", "punch", self.reveal_punchline)
-        self.create_canvas_button(280, 580, 80, 40, "#ff4bb5", "QUIT", "quit", self.root.destroy, font_size=10)
-
     def setup_text_labels(self):
-        # Draw Text on top of BG
         self.text_setup_id = self.canvas.create_text(
             200, 190, text="Ready to laugh?", font=("Comic Sans MS", 15, "bold"), 
             fill="black", width=280, justify="center", anchor="center"
@@ -115,80 +109,138 @@ class PopArtJokeApp:
             fill="#ff4bb5", width=280, justify="center", anchor="center"
         )
 
-    # --- THE MAGIC BUTTON FUNCTION ---
-    def create_canvas_button(self, x, y, w, h, color, text, tag_name, command, font_size=14):
-        radius = 25
-        padding = 4
+    def setup_buttons(self):
+        # Create persistent buttons
+        self.create_canvas_button(100, 400, 200, 55, "#ff4bb5", "TELL ME A JOKE", "joke", self.tell_joke)
+        self.create_canvas_button(100, 480, 200, 55, "#bfbfbf", "SHOW PUNCHLINE", "punch", self.reveal_punchline)
+        # QUIT Button (Small size restored: width 80)
+        self.create_canvas_button(280, 580, 80, 40, "#ff4bb5", "QUIT", "quit", self.root.destroy, font_size=10)
         
-        # 1. Shadow Polygon
-        shadow_pts = self.round_rect(x+padding, y+padding, w, h, radius)
-        self.canvas.create_polygon(shadow_pts, fill="black", tags=tag_name)
-        
-        # 2. Main Button Polygon
-        main_pts = self.round_rect(x, y, w, h, radius)
-        btn_id = self.canvas.create_polygon(main_pts, fill=color, outline="black", width=2, tags=(tag_name, "btn_shape"))
-        
-        # 3. Text
-        txt_id = self.canvas.create_text(x + w/2, y + h/2, text=text, fill="white", 
-                                         font=("Impact", font_size), tags=(tag_name, "btn_text"))
+        # Set Logic State
+        self.btns['punch']['state'] = 'disabled'
 
-        # Store data for state management
-        self.btns[tag_name] = {
-            "id": btn_id, "txt_id": txt_id, "color": color, 
-            "command": command, "state": "normal" if color != "#bfbfbf" else "disabled",
-            "base_x": x, "base_y": y, "w": w, "h": h, "pts": main_pts
+    # --- ROBUST CANVAS BUTTON LOGIC ---
+    def create_canvas_button(self, x, y, w, h, color, text, tag, command, font_size=14):
+        radius = 25
+        
+        # Draw Shadow (Fixed)
+        shadow_pts = self.round_rect(x+4, y+4, w, h, radius)
+        self.canvas.create_polygon(shadow_pts, fill="black", outline="black", tags=f"shadow_{tag}")
+        
+        # Draw Main Body (Dynamic)
+        main_pts = self.round_rect(x, y, w, h, radius)
+        poly_id = self.canvas.create_polygon(main_pts, fill=color, outline="black", width=2, tags=f"poly_{tag}")
+        
+        # Draw Text
+        txt_id = self.canvas.create_text(
+            x + w/2, y + h/2, 
+            text=text, fill="white", 
+            font=("Impact", font_size), 
+            tags=f"text_{tag}"
+        )
+
+        # Store Button Data
+        self.btns[tag] = {
+            'x': x, 'y': y, 'w': w, 'h': h, 'r': radius,
+            'color': color, 'text': text, 'command': command,
+            'state': 'normal' if color != "#bfbfbf" else 'disabled',
+            'pulsing': False, 'pulse_step': 0, 'font_size': font_size,
+            'poly_id': poly_id, 'txt_id': txt_id, 'hover_color': "#ff85d5"
         }
 
-        # Bindings
-        self.canvas.tag_bind(tag_name, "<Enter>", lambda e: self.on_hover(tag_name, True))
-        self.canvas.tag_bind(tag_name, "<Leave>", lambda e: self.on_hover(tag_name, False))
-        self.canvas.tag_bind(tag_name, "<Button-1>", lambda e: self.on_click(tag_name))
-        self.canvas.tag_bind(tag_name, "<ButtonRelease-1>", lambda e: self.on_release(tag_name))
+        # Bind Events to the POLYGON and TEXT (Not the shadow)
+        for item in [poly_id, txt_id]:
+            self.canvas.tag_bind(item, "<Enter>", lambda e, t=tag: self.on_hover(t, True))
+            self.canvas.tag_bind(item, "<Leave>", lambda e, t=tag: self.on_hover(t, False))
+            self.canvas.tag_bind(item, "<Button-1>", lambda e, t=tag: self.on_press(t))
+            self.canvas.tag_bind(item, "<ButtonRelease-1>", lambda e, t=tag: self.on_release(t))
 
     def round_rect(self, x, y, w, h, r):
         return (x+r, y, x+w-r, y, x+w, y+r, x+w, y+h-r, x+w-r, y+h, x+r, y+h, x, y+h-r, x, y+r)
 
-    # --- EVENT HANDLERS ---
+    # --- INTERACTION HANDLERS ---
     def on_hover(self, tag, entering):
         btn = self.btns[tag]
-        if btn["state"] == "disabled": return
-        color = "#ff85d5" if entering else btn["color"]
-        self.canvas.itemconfig(btn["id"], fill=color)
+        if btn['state'] == 'disabled': return
+        
+        target_color = btn['hover_color'] if entering else btn['color']
+        self.canvas.itemconfig(btn['poly_id'], fill=target_color)
 
-    def on_click(self, tag):
-        btn = self.btns[tag]
-        # Play sound
+    def on_press(self, tag):
+        # Play Click
         if self.click_fx: 
             try: self.click_fx.play()
             except: pass
             
-        # Move Visuals Down
-        self.canvas.move(tag, 4, 4) # Moves shadow too, but it looks okay as a "press"
-        # Actually we only want to move top layer. 
-        # Since tag selects all (shadow+btn), let's refine move:
-        # Only move the specific items manually? No, moving group is fine for press effect.
+        # Visual Press (Move down 2px)
+        self.canvas.move(f"poly_{tag}", 2, 2)
+        self.canvas.move(f"text_{tag}", 2, 2)
 
     def on_release(self, tag):
-        # Move Visuals Back Up
-        self.canvas.move(tag, -4, -4)
+        # Visual Release (Move up 2px)
+        self.canvas.move(f"poly_{tag}", -2, -2)
+        self.canvas.move(f"text_{tag}", -2, -2)
         
         btn = self.btns[tag]
-        if btn["state"] != "disabled" and btn["command"]:
-            btn["command"]()
+        if btn['state'] != 'disabled' and btn['command']:
+            btn['command']()
 
-    def set_btn_state(self, tag, state):
+    # --- STATE MANAGEMENT (Without Deleting) ---
+    def update_btn_state(self, tag, state, new_text=None):
         btn = self.btns[tag]
-        btn["state"] = state
-        if state == "disabled":
+        btn['state'] = state
+        
+        # Color Update
+        if state == 'disabled':
             new_color = "#bfbfbf"
+            self.stop_heartbeat(tag)
         else:
             new_color = "#ff4bb5" # Default Pink
-            
-        btn["color"] = new_color
-        self.canvas.itemconfig(btn["id"], fill=new_color)
+        
+        btn['color'] = new_color
+        self.canvas.itemconfig(btn['poly_id'], fill=new_color)
+        
+        # Text Update
+        if new_text:
+            btn['text'] = new_text
+            self.canvas.itemconfig(btn['txt_id'], text=new_text)
 
-    def set_btn_text(self, tag, text):
-        self.canvas.itemconfig(self.btns[tag]["txt_id"], text=text)
+    # --- ANIMATION ---
+    def start_heartbeat(self, tag):
+        if not self.btns[tag]['pulsing']:
+            self.btns[tag]['pulsing'] = True
+            self._pulse_frame(tag)
+
+    def stop_heartbeat(self, tag):
+        self.btns[tag]['pulsing'] = False
+        # Reset scale visually
+        self.update_visual_scale(tag, 0)
+
+    def _pulse_frame(self, tag):
+        if not self.btns[tag]['pulsing']: return
+        
+        if self.btns[tag]['pulse_step'] == 0:
+            self.update_visual_scale(tag, 2) # Expand
+            self.btns[tag]['pulse_step'] = 1
+            delay = 600
+        else:
+            self.update_visual_scale(tag, 0) # Contract
+            self.btns[tag]['pulse_step'] = 0
+            delay = 400
+            
+        self.root.after(delay, lambda: self._pulse_frame(tag))
+
+    def update_visual_scale(self, tag, scale):
+        # Updates coordinates to simulate resizing without deleting
+        btn = self.btns[tag]
+        x, y, w, h, r = btn['x'], btn['y'], btn['w'], btn['h'], btn['r']
+        
+        # New coords
+        new_pts = self.round_rect(x - scale, y - scale, w + (scale*2), h + (scale*2), r)
+        self.canvas.coords(btn['poly_id'], *new_pts)
+        
+        # Update text font size for effect
+        self.canvas.itemconfig(btn['txt_id'], font=("Impact", btn['font_size'] + int(scale)))
 
     # --- LOGIC ---
     def load_jokes(self):
@@ -200,45 +252,50 @@ class PopArtJokeApp:
 
     def tell_joke(self):
         if not self.jokes_list: return
-        if self.btns['joke']['state'] == 'disabled': return # Safety check
+        if self.btns['joke']['state'] == 'disabled': return
 
+        self.stop_heartbeat("joke")
         self.canvas.itemconfig(self.text_punch_id, text="") 
         
-        # Update Button States using new Helper
-        self.set_btn_state("punch", "normal")
-        self.set_btn_text("joke", "NEXT JOKE")
-        self.set_btn_state("joke", "disabled") # Prevent double click
+        self.update_btn_state("punch", "normal")
+        self.update_btn_state("joke", "disabled", "NEXT JOKE")
         
         self.current_joke = random.choice(self.jokes_list)
         setup_text = self.current_joke[0] + "?"
         
         self.typewriter_effect(self.text_setup_id, setup_text)
-        threading.Thread(target=self.speak, args=(setup_text,)).start()
+        
+        def speech_sequence():
+            self.speak(setup_text)
+            self.root.after(0, lambda: self.start_heartbeat("punch"))
+            
+        threading.Thread(target=speech_sequence).start()
 
     def reveal_punchline(self):
         if not self.current_joke: return
         if self.btns['punch']['state'] == 'disabled': return
 
         punch_text = self.current_joke[1]
+        self.update_btn_state("punch", "disabled")
         
-        self.set_btn_state("punch", "disabled")
-        self.set_btn_state("joke", "normal")
-
         def audio_sequence():
             self.root.after(0, lambda: self.typewriter_effect(self.text_punch_id, punch_text))
             self.speak(punch_text) 
             
             self.play_sound("drum.mp3")
-            time.sleep(2.0) 
+            time.sleep(1.7) # Fixed Timing: 1.7 seconds
             
             self.play_sound("laugh.wav")
             self.root.after(0, self.trigger_laugh_animation)
+            
+            self.root.after(0, lambda: self.update_btn_state("joke", "normal"))
+            self.root.after(0, lambda: self.start_heartbeat("joke"))
 
         threading.Thread(target=audio_sequence).start()
 
-    # --- ANIMATION & UTILS ---
+    # --- EMOJI ANIMATION ---
     def trigger_laugh_animation(self):
-        for _ in range(15): 
+        for _ in range(27): 
             x = random.randint(20, 380)
             y = 650 + random.randint(0, 100)
             speed = random.randint(3, 7)
@@ -274,9 +331,7 @@ class PopArtJokeApp:
     def play_sound(self, filename):
         path = self.get_resource_path(filename)
         if os.path.exists(path):
-            try:
-                pygame.mixer.music.load(path)
-                pygame.mixer.music.play()
+            try: pygame.mixer.music.load(path); pygame.mixer.music.play()
             except: pass
 
 if __name__ == "__main__":
