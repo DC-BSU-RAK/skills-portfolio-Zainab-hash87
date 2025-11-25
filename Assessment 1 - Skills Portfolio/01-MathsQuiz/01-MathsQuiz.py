@@ -8,6 +8,10 @@ import json  # To save leaderboard data to a file
 import os  # To check if files exist
 
 
+# Set the working directory to the script's location to ensure assets (images/sounds) load correctly
+script_directory = os.path.dirname(os.path.abspath(__file__))
+os.chdir(script_directory)
+
 #  MAIN CONTROLLER (The Brain of the App)
 
 class MathQuizApp(tk.Tk):
