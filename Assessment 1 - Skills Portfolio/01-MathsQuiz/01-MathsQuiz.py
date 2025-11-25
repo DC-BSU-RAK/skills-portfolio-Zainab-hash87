@@ -23,7 +23,7 @@ class MathQuizApp(tk.Tk):
         super().__init__()
 
         # --- Window Setup ---
-        self.title("Maths Quiz")
+        self.title("Brain Brawl: Arithmetic Quiz")
         self.geometry("1200x700")
         self.resizable(False, False)  # Keep window size fixed
         
