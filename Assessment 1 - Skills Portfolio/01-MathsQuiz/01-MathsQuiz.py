@@ -14,24 +14,18 @@ ACKNOWLEDGEMENTS:
 - Libraries: Pygame (Audio), Pillow (Image rendering).
 - AI Support: Google Gemini (Used for 'Confetti' particles & 'Slide' animation logic).
 """
-
-import tkinter as tk      # GUI Framework
-from tkinter import messagebox  # Alerts
-from PIL import Image, ImageTk  # Image handling
-import pygame             # Audio handling
-import time               # Timer
-import random             # Math generation
-import json               # Leaderboard data
-import os                 # File paths
-
-import tkinter as tk      # Standard GUI library
+#Importing oOf Libraries
+import tkinter as tk            # Standard GUI library
 from tkinter import messagebox  # Pop-up alerts
 from PIL import Image, ImageTk  # Image asset handling
-import pygame             # Audio handling
-import time               # Timer utilities
-import random             # Used within Class methods for dynamic question generation
-import json               # Data persistence for Leaderboard
-import os                 # File path management
+import pygame                   # Audio handling
+import time                     # Timer utilities
+import random                   # Used within Class methods for dynamic question generation
+import json                     # Data persistence for Leaderboard
+import os                       # File path management
+
+
+
 
 # --- ENVIRONMENT SETUP ---
 script_directory = os.path.dirname(os.path.abspath(__file__))
@@ -176,7 +170,7 @@ class InstructionPage(BasePage):
 
         next_btn = tk.Button(self, text="Next →", font=("Comic Sans MS", 22, "bold"), bg="#452929", fg="white", 
                              cursor="hand2", command=lambda: controller.show_frame("NamePage"))
-        self.canvas.create_window(1010, 602, window=next_btn)
+        self.canvas.create_window(1015, 597, window=next_btn)
         self.add_button_effects(next_btn)
 
 class NamePage(BasePage):
@@ -475,6 +469,10 @@ class ResultPage(BasePage):
         self.id_rank = self.canvas.create_text(center_x, frame_y + 50, text="", font=("Comic Sans MS", 28, "bold"), fill="#F3E08A")
         self.id_final_score = self.canvas.create_text(center_x, frame_y + 110, text="", font=("Comic Sans MS", 24, "bold"), fill="white")
         self.id_grade = self.canvas.create_text(center_x, frame_y + 160, text="", font=("Comic Sans MS", 22, "bold"), fill="#F8E88B")
+        
+        # CORRECT / WRONG STATS ADDED BACK HERE
+        self.id_stats = self.canvas.create_text(center_x, frame_y + 210, text="", font=("Comic Sans MS", 18, "bold"), fill="white")
+
         self.id_leaderboard = self.canvas.create_text(center_x, frame_y + 320, text="", font=("Arial", 14, "bold"), fill="white", justify="center")
 
         btn_play = tk.Button(self, text="Play Again ↻", font=("Comic Sans MS", 16, "bold"), bg="#3b5a2c", fg="white", width=11, cursor="hand2", command=lambda: controller.show_frame("DifficultyPage"))
@@ -488,6 +486,8 @@ class ResultPage(BasePage):
     def displayResults(self):
         """A function that outputs the users final score and ranks the user."""
         score = self.controller.score
+        correct = self.controller.total_correct
+        wrong = self.controller.total_wrong
         
         # Ranking Logic
         if score >= 90: grade, color, msg = "A+ (Math Wizard)", "#FFD700", f"Outstanding!"
@@ -495,14 +495,23 @@ class ResultPage(BasePage):
         elif score >= 50: grade, color, msg = "C (Good Try)", "#FFA500", f"Keep Going!"
         else: grade, color, msg = "D (Keep Practicing)", "#FF4444", f"Don't Give Up!"
 
-        if score >= 70: self.start_confetti()
+        # Play appropriate sound and effects based on score
+        if score >= 70:
+            self.controller.play_sfx("yay.mp3")
+            self.start_confetti()
+        else:
+            self.controller.play_sfx("sad.mp3")
         
         self.canvas.itemconfigure(self.id_rank, text=msg)
         self.canvas.itemconfigure(self.id_grade, text=f"Grade: {grade}", fill=color)
         self.canvas.itemconfigure(self.id_final_score, text=f"Final Score: {score} / 100")
         
+        # UPDATE STATS TEXT HERE
+        self.canvas.itemconfigure(self.id_stats, text=f"✅ Correct: {correct}   |   ❌ Wrong: {wrong}")
+        
         self.update_leaderboard_file()
-        pygame.mixer.music.play(-1)
+        # Resume background music after a short delay (3 seconds) to let SFX play
+        self.after(3000, lambda: pygame.mixer.music.play(-1))
 
     def update_leaderboard_file(self):
         file = "leaderboard.json"
