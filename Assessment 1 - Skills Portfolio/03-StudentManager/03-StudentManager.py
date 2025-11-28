@@ -11,6 +11,7 @@ REFERENCES & ACKNOWLEDGEMENTS:
    - Pillow Library: Used for advanced image processing (Brightness/Resizing).
    - UI Enhancements: Custom 'RoundedButton' class and Background Overlay logic 
      were developed with the assistance of Generative AI (Google Gemini).
+     
 """
 
 import tkinter as tk
