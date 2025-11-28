@@ -1,51 +1,28 @@
 """
 PROGRAMMING SKILLS PORTFOLIO - EXERCISE 1: MATH QUIZ
-Student Name: Zainab Afzal
-University: Bath Spa University
---------------------------------------------------------------------------------
+-------------------------------------------------------
+The mandatory functions requested in the brief are encapsulated within classes:
+1. displayMenu()      -> DifficultyPage (Renders selection menu)
+2. randomInt()        -> QuizPage (Generates numbers based on level)
+3. decideOperation()  -> QuizPage (Selects + or -)
+4. displayProblem()   -> QuizPage (Updates GUI)
+5. isCorrect()        -> QuizPage (Validates answer & scores)
+6. displayResults()   -> ResultPage (Calculates grade & ranking)
 
-PROJECT OVERVIEW:
-This application is a feature-rich arithmetic quiz developed using Python and Tkinter.
-It implements a complete GUI experience with difficulty selection, real-time scoring,
-and persistent high-score tracking. The system is built using Object-Oriented
-Programming (OOP) principles to ensure modularity and scalability.
-
-COMPLIANCE WITH ASSESSMENT BRIEF:
-This submission implements all mandatory functions required by the exercise brief. 
-To adhere to OOP best practices, these functions are encapsulated as class methods:
-
-1. displayMenu()      -> Implemented in DifficultyPage class to render options.
-2. randomInt()        -> Implemented in QuizPage class for difficulty-based logic.
-3. decideOperation()  -> Implemented in QuizPage class to select (+ or -).
-4. displayProblem()   -> Implemented in QuizPage class to update the GUI.
-5. isCorrect()        -> Implemented in QuizPage class for validation & scoring.
-6. displayResults()   -> Implemented in ResultPage class for grading & ranking.
-
---------------------------------------------------------------------------------
-REFERENCES & ACKNOWLEDGEMENTS:
---------------------------------------------------------------------------------
-1. CLASS RESOURCES:
-   - GUI Page Controller structure and JSON file handling patterns were adapted 
-     from the Module Lecture Notes and Lab Exercises.
-
-2. EXTERNAL LIBRARIES:
-   - Pygame: Integrated for managing background music and event-triggered SFX.
-   - Pillow (PIL): Utilized for high-quality image resizing and rendering on Canvas.
-
-3. AI ASSISTANCE:
-   - Google Gemini: Consulted for optimizing the 'Confetti' particle animation logic
-     and refining the recursion used in the 'Slide Transition' effects.
+ACKNOWLEDGEMENTS:
+- Core Logic: Adapted from Module Lecture Notes.
+- Libraries: Pygame (Audio), Pillow (Image rendering).
+- AI Support: Google Gemini (Used for 'Confetti' particles & 'Slide' animation logic).
 """
-
-# --- LIBRARY IMPORTS ---
-import tkinter as tk      # Core GUI library for window management and widget creation
-from tkinter import messagebox  # Standard dialogs for user alerts and error handling
-from PIL import Image, ImageTk  # External library (Pillow) for handling .png/.jpg assets on Canvas
-import pygame             # External library for mixing background music and sound effects
-import time               # Standard library for timing logic (supplementing Tkinter's .after)
-import random             # Standard library for generating random numbers and operators (randomInt)
-import json               # Standard library for serializing/deserializing leaderboard data
-import os                 # Standard library for robust file path handling across operating systems
+#Importing oOf Libraries
+import tkinter as tk            # Standard GUI library
+from tkinter import messagebox  # Pop-up alerts
+from PIL import Image, ImageTk  # Image asset handling
+import pygame                   # Audio handling
+import time                     # Timer utilities
+import random                   # Used within Class methods for dynamic question generation
+import json                     # Data persistence for Leaderboard
+import os                       # File path management
 
 # --- ENVIRONMENT SETUP ---
 script_directory = os.path.dirname(os.path.abspath(__file__))
