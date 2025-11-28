@@ -1,30 +1,20 @@
 """
-PROGRAMMING SKILLS PORTFOLIO - EXERCISE 1: MATH QUIZ
-Student Name: Zainab Afzal
-University: Bath Spa University
-
-REFERENCES & ACKNOWLEDGEMENTS:
-1. CLASS RESOURCES:
-   - GUI structure & JSON handling adapted from Module Lecture Notes.
-   
-2. EXTERNAL & AI SUPPORT:
-   - Pygame Library: Integrated for background music and sound effects.
-   - Pillow Library: Used for image rendering on Canvas.
-   - Animations: Logic for 'Confetti' and 'Slide Transitions' refined with 
-     assistance from Generative AI (Google Gemini).
+EXERCISE 1: MATH QUIZ
+----------------------
+REFERENCES:
+1. Logic: GUI & JSON handling adapted from Module Lecture Notes.
+2. Advanced: Integrated Pygame/Pillow; Generative AI used to refine 
+   Confetti animations & Slide transitions.
 """
-
-
 #Importing of libraries 
-
-import tkinter as tk  # Main GUI library for windows and buttons
-from tkinter import messagebox  # To show pop-up alerts
-from PIL import Image, ImageTk  # To handle and resize images
-import pygame  # For background music and sound effects
-import time  # To handle timers and delays
-import random  # To generate random math questions
-import json  # To save leaderboard data to a file
-import os  # To check if files exist
+import tkinter as tk              # Main GUI library for windows and buttons
+from tkinter import messagebox    # To show pop-up alerts
+from PIL import Image, ImageTk    # To handle and resize images
+import pygame                     # For background music and sound effects
+import time                       # To handle timers and delays
+import random                     # To generate random math questions
+import json                       # To save leaderboard data to a file
+import os                         # To check if files exist
 
 
 # Set the working directory to the script's location to ensure assets (images/sounds) load correctly
