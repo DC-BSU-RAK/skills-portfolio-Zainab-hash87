@@ -1,3 +1,25 @@
+"""
+PROGRAMMING SKILLS PORTFOLIO - EXERCISE 1: MATH QUIZ
+Student Name: Zainab Afzal
+University: Bath Spa University
+
+"REFERENCES & ACKNOWLEDGEMENTS":
+
+1. CLASS MODULE RESOURCES:
+   - JSON Handling (Leaderboard) and GUI basics (Tkinter Widgets) were implemented 
+     based on the concepts covered in the Lecture Notes (GUI & Files sections).
+   - Image handling logic (Pillow) is based on class exercises.
+
+2. EXTENDED LEARNING (EXTERNAL SOURCES & AI):
+   - To achieve the "Outstanding" criteria, I implemented features beyond the lecture notes.
+   - Background Music: Used 'pygame' library (Researched via online documentation/AI).
+   - Animations: Confetti logic was generated with assistance from Generative AI 
+     (Prompt: "Create a confetti animation on Tkinter canvas").
+   - OOP Structure: Refined the class structure using AI suggestions for better modularity.
+"""
+
+#Importing of libraries 
+
 import tkinter as tk  # Main GUI library for windows and buttons
 from tkinter import messagebox  # To show pop-up alerts
 from PIL import Image, ImageTk  # To handle and resize images
@@ -220,6 +242,8 @@ class NamePage(BasePage):
 
 
 #  PAGE 4: DIFFICULTY SELECTION
+# [Requirement: displayMenu]
+# This class handles the menu display and difficulty selection.
 
 class DifficultyPage(BasePage):
     def __init__(self, parent, controller):
@@ -320,6 +344,9 @@ class QuizPage(BasePage):
         if self.controller.clock_channel and self.controller.clock_channel.get_busy():
             self.controller.clock_channel.stop()
 
+# [Requirement: randomInt & decideOperation]
+# Generates random numbers and decides the operation (+ or -) based on difficulty.
+
     def next_question(self):
         """Generates a new question based on difficulty."""
         self.stop_clock_sound()
@@ -389,6 +416,10 @@ class QuizPage(BasePage):
                 self.canvas.itemconfigure(self.id_feedback, text="Time Up! Moving on...", fill="orange")
                 self.after(2000, self.next_question)
 
+
+# [Requirement: isCorrect]
+# Validates the user's answer and calculates score/attempts.
+
     def check_answer(self):
         """Validates user answer and updates score."""
         user_input = self.entry_answer.get()
@@ -456,6 +487,10 @@ class QuizPage(BasePage):
 
 
 #  PAGE 6: RESULTS & LEADERBOARD
+
+# [Requirement: displayResults]
+# Displays final score, grade, and ranks the user.
+
 
 class ResultPage(BasePage):
     def __init__(self, parent, controller):
