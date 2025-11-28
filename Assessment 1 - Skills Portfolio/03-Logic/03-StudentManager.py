@@ -1,35 +1,55 @@
+"""
+PROGRAMMING SKILLS PORTFOLIO - EXERCISE 3: STUDENT MANAGER SYSTEM
+Student Name: Zainab Afzal
+University: Bath Spa University
+
+REFERENCES & ACKNOWLEDGEMENTS:
+1. CLASS RESOURCES:
+   - File handling & GUI structure adapted from Module Lecture Notes.
+2. EXTERNAL & AI SUPPORT:
+   - Pillow Library: Used for advanced image processing (Brightness/Resizing).
+   - UI Enhancements: Custom 'RoundedButton' class and Background Overlay logic 
+     were developed with the assistance of Generative AI (Google Gemini).
+"""
+
 import tkinter as tk
 from tkinter import ttk, messagebox
-from PIL import Image, ImageTk  # pip install pillow
+from PIL import Image, ImageTk, ImageEnhance  # External library for image processing
 import os
 from datetime import datetime
 
-# --- COLORS & THEME ---
+# --- CONSTANTS & THEME CONFIGURATION ---
+# Centralized configuration for easy theming and maintenance
 OXFORD_BLUE = "#002147"
 SIDEBAR_BG = "#111827"
 TEXT_WHITE = "#ffffff"
 TEXT_DARK = "#1f2937"
 
-# Stats Colors
+# Dashboard Card Colors (Pastel palette for readability)
 CARD_BLUE = "#e0f2fe"
 CARD_GREEN = "#dcfce7"
 CARD_GOLD = "#fef3c7"
 
-# Button Colors
+# Button Styling
 BTN_NORMAL = "#1f2937"
 BTN_HOVER = "#374151"
-BTN_TEXT_ACTIVE = "#fbbf24" # Gold
+BTN_TEXT_ACTIVE = "#fbbf24" # Gold accent on hover
 
-# --- PATHS ---
+# --- SMART FILE PATHS ---
+# Uses os.path to ensure the application runs correctly on any operating system
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FILE_NAME = os.path.join(BASE_DIR, "studentMarks.txt")
 LOGO_PATH = os.path.join(BASE_DIR, "oxford-logo.png")
 ICON_PATH = os.path.join(BASE_DIR, "uni-icon.png")
-BG_PATH   = os.path.join(BASE_DIR, "oxford-bg.jpg")  # NEW BACKGROUND IMAGE
+BG_PATH   = os.path.join(BASE_DIR, "oxford-bg.jpg")
 
-# --- CUSTOM WIDGETS ---
+# --- CUSTOM WIDGET CLASSES ---
 
 class RoundedButton(tk.Canvas):
+    """
+    A custom UI component that simulates a modern rounded button.
+    Inherits from Canvas to draw smooth shapes which standard Tkinter buttons lack.
+    """
     def __init__(self, parent, text, command, width=220, height=45, corner_radius=20, color=BTN_NORMAL):
         super().__init__(parent, borderwidth=0, relief="flat", highlightthickness=0, bg=SIDEBAR_BG, width=width, height=height)
         self.command = command
@@ -39,50 +59,60 @@ class RoundedButton(tk.Canvas):
         self.active_text = BTN_TEXT_ACTIVE
         self.base_text = "#e5e7eb"
 
+        # Draw the button shape and text
         self.rect = self.create_rounded_rect(2, 2, width-2, height-2, corner_radius, fill=color)
         self.text_item = self.create_text(width/2, height/2, text=text, fill=self.base_text, font=("Segoe UI", 11, "bold"))
 
+        # Bind mouse events for hover effects
         self.bind("<Enter>", self.on_enter)
         self.bind("<Leave>", self.on_leave)
         self.bind("<Button-1>", self.on_click)
 
     def create_rounded_rect(self, x1, y1, x2, y2, r, **kwargs):
+        """Helper function to draw a polygon approximating a rounded rectangle."""
         points = [x1+r, y1, x1+r, y1, x2-r, y1, x2-r, y1, x2, y1, x2, y1+r, x2, y1+r, x2, y2-r, x2, y2-r, x2, y2, x2-r, y2, x2-r, y2, x1+r, y2, x1+r, y2, x1, y2, x1, y2-r, x1, y2-r, x1, y1+r, x1, y1+r, x1, y1]
         return self.create_polygon(points, **kwargs, smooth=True)
 
     def on_enter(self, event):
+        """Changes appearance on mouse hover."""
         self.itemconfig(self.rect, fill=self.hover_color)
         self.itemconfig(self.text_item, fill=self.active_text)
         self.config(cursor="hand2")
 
     def on_leave(self, event):
+        """Restores appearance when mouse leaves."""
         self.itemconfig(self.rect, fill=self.color)
         self.itemconfig(self.text_item, fill=self.base_text)
 
     def on_click(self, event):
+        """Triggers the assigned command."""
         if self.command: self.command()
 
 class StatCard(tk.Frame):
+    """
+    A reusable dashboard widget to display key metrics (Total, Average, etc.).
+    Uses a frame with a colored background and border.
+    """
     def __init__(self, parent, title, value, color, icon_char):
-        # Added a border to make it pop against the background
         super().__init__(parent, bg="white", bd=2, relief="groove")
-        
         inner = tk.Frame(self, bg=color, padx=20, pady=15)
         inner.pack(fill="both", expand=True)
         
+        # Icon
         tk.Label(inner, text=icon_char, font=("Segoe UI", 24), bg=color, fg=TEXT_DARK).pack(side="left", padx=(0, 15))
         
+        # Text Data
         text_frame = tk.Frame(inner, bg=color)
         text_frame.pack(side="left")
-        
         tk.Label(text_frame, text=title, font=("Segoe UI", 10, "bold"), bg=color, fg="#4b5563").pack(anchor="w")
         self.value_label = tk.Label(text_frame, text=value, font=("Segoe UI", 18, "bold"), bg=color, fg=TEXT_DARK)
         self.value_label.pack(anchor="w")
 
     def update_value(self, new_value):
+        """Updates the displayed metric dynamically."""
         self.value_label.config(text=new_value)
 
-# --- MAIN APP ---
+# --- MAIN APPLICATION CONTROLLER ---
 
 class StudentManagerFinal(tk.Tk):
     def __init__(self):
@@ -91,30 +121,34 @@ class StudentManagerFinal(tk.Tk):
         self.geometry("1280x750")
         self.minsize(1100, 650)
         
+        # Initialize Application State
         self.students = []
         self.logo_img = None
         self.app_icon = None 
-        self.bg_photo = None # Background Image Variable
+        self.bg_photo = None 
         
+        # Load resources before building UI
         self.load_data()
         self.load_assets()
 
-        # Layout
+        # Construct UI Hierarchy
         self.setup_header()
         
-        # Container for Sidebar + Main Content
         container = tk.Frame(self)
         container.pack(fill="both", expand=True)
 
         self.setup_sidebar(container)
         self.setup_dashboard(container)
         
+        # Populate views with data
         self.refresh_table()
 
     def load_assets(self):
+        """Loads and processes all external image assets."""
         # 1. Header Logo
         try:
             pil_img = Image.open(LOGO_PATH)
+            # Maintain aspect ratio to prevent squeezing
             w, h = pil_img.size
             aspect = w / h
             new_w = int(70 * aspect)
@@ -122,28 +156,31 @@ class StudentManagerFinal(tk.Tk):
             self.logo_img = ImageTk.PhotoImage(pil_img)
         except: self.logo_img = None
 
-        # 2. Window Icon
+        # 2. Application Icon
         try:
             self.app_icon = ImageTk.PhotoImage(file=ICON_PATH)
             self.iconphoto(False, self.app_icon)
         except: pass
 
-        # 3. Main Background Image
+        # 3. Background Wallpaper
         try:
             bg_img = Image.open(BG_PATH)
-            # Resize to cover a large screen area roughly
-            bg_img = bg_img.resize((1400, 900), Image.Resampling.LANCZOS)
+            bg_img = bg_img.resize((1600, 1000), Image.Resampling.LANCZOS)
+            
+            # Darken image to ensure white text readability (Accessibility)
+            enhancer = ImageEnhance.Brightness(bg_img)
+            bg_img = enhancer.enhance(0.3) 
+            
             self.bg_photo = ImageTk.PhotoImage(bg_img)
-        except:
-            print("Background image not found. Using solid color.")
-            self.bg_photo = None
+        except: self.bg_photo = None
 
     def setup_header(self):
+        """Builds the top navigation bar."""
         header = tk.Frame(self, bg=OXFORD_BLUE, height=100)
         header.pack(side="top", fill="x")
         header.pack_propagate(False)
 
-        # Left: Logo & Title
+        # Branding Section
         left_box = tk.Frame(header, bg=OXFORD_BLUE)
         left_box.pack(side="left", padx=30)
 
@@ -155,12 +192,11 @@ class StudentManagerFinal(tk.Tk):
         tk.Label(title_box, text="UNIVERSITY OF", font=("Times New Roman", 10), fg="#9ca3af", bg=OXFORD_BLUE).pack(anchor="w")
         tk.Label(title_box, text="OXFORD", font=("Times New Roman", 22, "bold"), fg=TEXT_WHITE, bg=OXFORD_BLUE).pack(anchor="w")
 
-        # Right: Logout & Profile
+        # User Profile Section
         right_box = tk.Frame(header, bg=OXFORD_BLUE)
         right_box.pack(side="right", padx=30)
         
         def logout():
-            # YOUR REQUESTED MESSAGE RESTORED HERE:
             if messagebox.askyesno("Logout", "Are you sure you want to logout?"):
                 self.destroy()
 
@@ -181,12 +217,14 @@ class StudentManagerFinal(tk.Tk):
                   command=show_profile).pack(side="right")
 
     def setup_sidebar(self, parent):
+        """Builds the collapsible navigation sidebar."""
         sidebar = tk.Frame(parent, bg=SIDEBAR_BG, width=260)
         sidebar.pack(side="left", fill="y")
         sidebar.pack_propagate(False)
 
         tk.Label(sidebar, text="DASHBOARD", fg="#6b7280", bg=SIDEBAR_BG, font=("Segoe UI", 9, "bold")).pack(pady=(30, 15))
 
+        # Menu Options
         btns = [
             ("📊 View All Records", self.refresh_table),
             ("🏆 Highest Score", self.show_highest),
@@ -202,46 +240,44 @@ class StudentManagerFinal(tk.Tk):
             RoundedButton(sidebar, text=txt, command=cmd).pack(pady=10)
 
     def setup_dashboard(self, parent):
-        # Use Canvas for Main Content to support Background Image
+        """Constructs the main dashboard area with background and widgets."""
         self.main_canvas = tk.Canvas(parent, bg="#f3f4f6", highlightthickness=0)
         self.main_canvas.pack(side="right", fill="both", expand=True)
 
-        # Draw Background Image
         if self.bg_photo:
             self.main_canvas.create_image(0, 0, image=self.bg_photo, anchor="nw")
 
-        # --- TITLE BAR ---
-        title_frame = tk.Frame(self.main_canvas, bg="white", padx=20, pady=10, relief="raised", bd=1)
-        # Place title bar at top with some padding
-        self.main_canvas.create_window(20, 20, window=title_frame, anchor="nw", width=950)
-        
-        tk.Label(title_frame, text="Student Performance Records", font=("Segoe UI", 18, "bold"), bg="white", fg=TEXT_DARK).pack(side="left")
-        
-        # Search inside Title Bar
-        search_box = tk.Frame(title_frame, bg="#f3f4f6", bd=0, padx=5, pady=2)
-        search_box.pack(side="right")
-        tk.Label(search_box, text="🔍", bg="#f3f4f6").pack(side="left")
+        # --- FLOATING SEARCH BAR ---
+        search_card = tk.Frame(self.main_canvas, bg="white", bd=1, relief="solid", padx=10, pady=5)
+        tk.Label(search_card, text="Search:", font=("Segoe UI", 10, "bold"), bg="white", fg="#666").pack(side="left")
         self.search_var = tk.StringVar()
         self.search_var.trace("w", self.filter_data)
-        tk.Entry(search_box, textvariable=self.search_var, bd=0, bg="#f3f4f6", width=25, font=("Segoe UI", 10)).pack(side="left", padx=5)
+        tk.Entry(search_card, textvariable=self.search_var, bd=0, bg="white", width=25, font=("Segoe UI", 11)).pack(side="left", padx=5)
+        
+        self.main_canvas.create_window(950, 30, window=search_card, anchor="ne", width=300, height=45)
+
+        # --- PAGE TITLE ---
+        self.main_canvas.create_text(30, 40, text="Student Performance Records", 
+                                     font=("Segoe UI", 24, "bold"), fill="white", anchor="nw")
 
         # --- STATS ROW ---
-        stats_container = tk.Frame(self.main_canvas, bg="#f3f4f6") # Transparent-ish container
-        # We manually place windows on canvas to let background show through gaps
-        
         self.card_total = StatCard(self.main_canvas, "Total Students", "0", CARD_BLUE, "👥")
-        self.main_canvas.create_window(20, 100, window=self.card_total, anchor="nw", width=300, height=100)
+        self.main_canvas.create_window(30, 110, window=self.card_total, anchor="nw", width=300, height=100)
 
         self.card_avg = StatCard(self.main_canvas, "Class Average", "0%", CARD_GREEN, "📊")
-        self.main_canvas.create_window(340, 100, window=self.card_avg, anchor="nw", width=300, height=100)
+        self.main_canvas.create_window(350, 110, window=self.card_avg, anchor="nw", width=300, height=100)
 
         self.card_top = StatCard(self.main_canvas, "Top Performer", "-", CARD_GOLD, "🏆")
-        self.main_canvas.create_window(660, 100, window=self.card_top, anchor="nw", width=300, height=100)
+        self.main_canvas.create_window(670, 110, window=self.card_top, anchor="nw", width=300, height=100)
 
-        # --- TABLE AREA ---
-        # A white card to hold the table
-        table_card = tk.Frame(self.main_canvas, bg="white", bd=2, relief="groove")
-        self.main_canvas.create_window(20, 220, window=table_card, anchor="nw", width=940, height=450)
+        # --- DATA TABLE AREA ---
+        self.table_card = tk.Frame(self.main_canvas, bg="white", bd=2, relief="groove")
+        
+        # Responsive binding logic
+        self.main_canvas.bind("<Configure>", self.on_resize)
+
+        # Initial Placement
+        self.table_window = self.main_canvas.create_window(30, 240, window=self.table_card, anchor="nw", width=940, height=450)
 
         style = ttk.Style()
         style.theme_use("clam")
@@ -250,7 +286,7 @@ class StudentManagerFinal(tk.Tk):
         style.layout("Treeview", [('Treeview.treearea', {'sticky': 'nswe'})]) 
 
         cols = ("ID", "Name", "CW", "Exam", "Total", "Grade")
-        self.tree = ttk.Treeview(table_card, columns=cols, show="headings", selectmode="browse")
+        self.tree = ttk.Treeview(self.table_card, columns=cols, show="headings", selectmode="browse")
         
         headers = ["Student ID", "Full Name", "Coursework /60", "Exam /100", "Total %", "Grade"]
         widths = [100, 250, 100, 100, 100, 80]
@@ -259,16 +295,26 @@ class StudentManagerFinal(tk.Tk):
             self.tree.column(c, width=w, anchor="center")
         self.tree.column("Name", anchor="w", width=250)
 
-        sb = ttk.Scrollbar(table_card, orient="vertical", command=self.tree.yview)
+        sb = ttk.Scrollbar(self.table_card, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=sb.set)
         sb.pack(side="right", fill="y")
         self.tree.pack(side="left", fill="both", expand=True)
 
+        # Conditional Formatting Tags
         self.tree.tag_configure('A', foreground="#16a34a", font=("Segoe UI", 10, "bold"))
         self.tree.tag_configure('F', foreground="#dc2626", font=("Segoe UI", 10, "bold"))
 
-    # --- LOGIC ---
+    def on_resize(self, event):
+        """Dynamic Resizing of the table when window size changes."""
+        new_width = event.width - 60  
+        new_height = event.height - 270 
+        if new_width > 500 and new_height > 200:
+            self.main_canvas.itemconfigure(self.table_window, width=new_width, height=new_height)
+
+    # --- BUSINESS LOGIC & DATA HANDLING ---
+
     def load_data(self):
+        """Reads and parses the studentMarks.txt file."""
         self.students = []
         if not os.path.exists(FILE_NAME):
             with open(FILE_NAME, "w") as f: f.write("0\n")
@@ -276,7 +322,7 @@ class StudentManagerFinal(tk.Tk):
         try:
             with open(FILE_NAME, "r") as f:
                 lines = f.readlines()
-                for line in lines[1:]:
+                for line in lines[1:]: # Skip header count
                     p = line.strip().split(',')
                     if len(p) >= 6:
                         cw_t = int(p[2])+int(p[3])+int(p[4])
@@ -287,6 +333,7 @@ class StudentManagerFinal(tk.Tk):
         except: pass
 
     def get_grade(self, p):
+        """Returns grade letter based on percentage."""
         if p>=70: return 'A'
         elif p>=60: return 'B'
         elif p>=50: return 'C'
@@ -294,6 +341,7 @@ class StudentManagerFinal(tk.Tk):
         else: return 'F'
 
     def save_data(self):
+        """Writes current application state back to the text file."""
         try:
             with open(FILE_NAME, "w") as f:
                 f.write(f"{len(self.students)}\n")
@@ -304,6 +352,7 @@ class StudentManagerFinal(tk.Tk):
         except Exception as e: messagebox.showerror("Error", str(e))
 
     def refresh_table(self, data=None):
+        """Refreshes the Treeview and updates Summary Statistics."""
         if data is None: data = self.students
         for r in self.tree.get_children(): self.tree.delete(r)
         
@@ -315,11 +364,13 @@ class StudentManagerFinal(tk.Tk):
             total_sum += s['perc']
             if s['perc'] > max_score:
                 max_score = s['perc']
-                top_student = s['name'].split()[0]
+                top_student = s['name'].split()[0] # Display first name only
 
+            # Apply color formatting
             tag = 'A' if s['grade'] == 'A' else ('F' if s['grade'] == 'F' else '')
             self.tree.insert("", "end", values=(s['id'], s['name'], f"{s['cw_total']}", f"{s['exam']}", f"{s['perc']}%", s['grade']), tags=(tag,))
 
+        # Update Dashboard Stats Cards
         count = len(data)
         avg = round(total_sum / count, 1) if count > 0 else 0
         
@@ -328,30 +379,36 @@ class StudentManagerFinal(tk.Tk):
         self.card_top.update_value(top_student if count > 0 else "-")
 
     def filter_data(self, *args):
+        """Live search filter functionality."""
         q = self.search_var.get().lower()
         self.refresh_table([s for s in self.students if q in s['name'].lower() or q in str(s['id'])])
 
     def sort_data(self, key):
+        """Sorts list based on key (Score or Name)."""
         if key == 'score': self.students.sort(key=lambda x: x['total'], reverse=True)
         else: self.students.sort(key=lambda x: x['name'])
         self.refresh_table()
 
-    # ACTIONS
+    # --- CRUD ACTIONS ---
     def show_highest(self):
         if self.students:
             top = max(self.students, key=lambda x: x['perc'])
             messagebox.showinfo("Top", f"Top Student: {top['name']} ({top['perc']}%)")
+            
     def show_lowest(self):
         if self.students:
             low = min(self.students, key=lambda x: x['perc'])
             messagebox.showinfo("Low", f"Lowest Student: {low['name']} ({low['perc']}%)")
+            
     def delete_record(self):
         sel = self.tree.selection()
-        if sel and messagebox.askyesno("Delete", "Sure?"):
+        if sel and messagebox.askyesno("Delete", "Are you sure you want to delete this record?"):
             sid = str(self.tree.item(sel[0])['values'][0])
             self.students = [s for s in self.students if str(s['id']) != sid]
             self.save_data()
+            
     def add_record(self): self.open_form("Add New Student")
+    
     def edit_record(self):
         sel = self.tree.selection()
         if sel:
@@ -361,6 +418,7 @@ class StudentManagerFinal(tk.Tk):
         else: messagebox.showwarning("Warning", "Select a student first")
 
     def open_form(self, title, data=None):
+        """Opens a form window for Add/Edit operations."""
         win = tk.Toplevel(self)
         win.title(title)
         win.geometry("400x600")
@@ -382,16 +440,19 @@ class StudentManagerFinal(tk.Tk):
             
         if data:
             entries['id'].insert(0, data['id'])
-            entries['id'].config(state="disabled")
+            entries['id'].config(state="disabled") # ID cannot be changed in edit mode
             entries['name'].insert(0, data['name'])
             entries['c1'].insert(0, data['cw'][0]); entries['c2'].insert(0, data['cw'][1]); entries['c3'].insert(0, data['cw'][2])
             entries['ex'].insert(0, data['exam'])
 
         def save():
+            """Validates inputs and saves data to list."""
             try:
                 nid = entries['id'].get()
                 cw = [int(entries['c1'].get()), int(entries['c2'].get()), int(entries['c3'].get())]
                 ex = int(entries['ex'].get())
+                
+                # Validation Logic
                 if any(x<0 or x>20 for x in cw) or ex<0 or ex>100: raise ValueError
                 
                 cw_t = sum(cw); ovr = cw_t + ex; perc = (ovr/160)*100
@@ -405,7 +466,7 @@ class StudentManagerFinal(tk.Tk):
                         messagebox.showerror("Error", "ID Exists"); return
                     self.students.append(rec)
                 self.save_data(); win.destroy()
-            except: messagebox.showerror("Error", "Check inputs")
+            except: messagebox.showerror("Error", "Check inputs: Marks must be valid numbers within range.")
 
         tk.Button(win, text="SAVE", bg=OXFORD_BLUE, fg="white", font=("bold"), command=save).pack(side="bottom", pady=20)
 
