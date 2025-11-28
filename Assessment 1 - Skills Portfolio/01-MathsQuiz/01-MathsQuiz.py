@@ -169,7 +169,7 @@ class InstructionPage(BasePage):
 
         next_btn = tk.Button(self, text="Next →", font=("Comic Sans MS", 22, "bold"), bg="#452929", fg="white", 
                              cursor="hand2", command=lambda: controller.show_frame("NamePage"))
-        self.canvas.create_window(1015, 597, window=next_btn)
+        self.canvas.create_window(1010, 602, window=next_btn)
         self.add_button_effects(next_btn)
 
 class NamePage(BasePage):
@@ -223,14 +223,14 @@ class DifficultyPage(BasePage):
         # Difficulty Options
         btn_easy = tk.Button(self, text="1. Easy (1 digit)", font=btn_font, bg="#452929", fg="white", width=15, 
                              cursor="hand2", command=lambda: self.start_game(1))
-        btn_mod = tk.Button(self, text="2. Moderate (2 digits)", font=btn_font, bg="#452929", fg="white", width=15, 
+        btn_mod = tk.Button(self, text="2. Moderate (2 digits)", font=btn_font, bg="#452929", fg="white", width=19, 
                             cursor="hand2", command=lambda: self.start_game(2))
-        btn_adv = tk.Button(self, text="3. Advanced (4 digits)", font=btn_font, bg="#452929", fg="white", width=15, 
+        btn_adv = tk.Button(self, text="3. Advanced (4 digits)", font=btn_font, bg="#452929", fg="white", width=18, 
                             cursor="hand2", command=lambda: self.start_game(3))
         
         self.canvas.create_window(360, 320, window=btn_easy)
-        self.canvas.create_window(510, 420, window=btn_mod)
-        self.canvas.create_window(690, 510, window=btn_adv)
+        self.canvas.create_window(530, 420, window=btn_mod)
+        self.canvas.create_window(700, 515, window=btn_adv)
         
         back_btn = tk.Button(self, text="← Back", font=("Comic Sans MS", 16, "bold"), bg="#5a2c2c", fg="white", 
                              width=10, cursor="hand2", command=lambda: self.controller.show_frame("NamePage"))
