@@ -3,20 +3,17 @@ PROGRAMMING SKILLS PORTFOLIO - EXERCISE 1: MATH QUIZ
 Student Name: Zainab Afzal
 University: Bath Spa University
 
-"REFERENCES & ACKNOWLEDGEMENTS":
-
-1. CLASS MODULE RESOURCES:
-   - JSON Handling (Leaderboard) and GUI basics (Tkinter Widgets) were implemented 
-     based on the concepts covered in the Lecture Notes (GUI & Files sections).
-   - Image handling logic (Pillow) is based on class exercises.
-
-2. EXTENDED LEARNING (EXTERNAL SOURCES & AI):
-   - To achieve the "Outstanding" criteria, I implemented features beyond the lecture notes.
-   - Background Music: Used 'pygame' library (Researched via online documentation/AI).
-   - Animations: Confetti logic was generated with assistance from Generative AI 
-     (Prompt: "Create a confetti animation on Tkinter canvas").
-   - OOP Structure: Refined the class structure using AI suggestions for better modularity.
+REFERENCES & ACKNOWLEDGEMENTS:
+1. CLASS RESOURCES:
+   - GUI structure & JSON handling adapted from Module Lecture Notes.
+   
+2. EXTERNAL & AI SUPPORT:
+   - Pygame Library: Integrated for background music and sound effects.
+   - Pillow Library: Used for image rendering on Canvas.
+   - Animations: Logic for 'Confetti' and 'Slide Transitions' refined with 
+     assistance from Generative AI (Google Gemini).
 """
+
 
 #Importing of libraries 
 

@@ -6,6 +6,7 @@ University: Bath Spa University
 REFERENCES & ACKNOWLEDGEMENTS:
 1. CLASS RESOURCES:
    - File handling & GUI structure adapted from Module Lecture Notes.
+   
 2. EXTERNAL & AI SUPPORT:
    - Pillow Library: Used for advanced image processing (Brightness/Resizing).
    - UI Enhancements: Custom 'RoundedButton' class and Background Overlay logic 

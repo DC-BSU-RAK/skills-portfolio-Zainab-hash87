@@ -7,6 +7,7 @@ REFERENCES & ACKNOWLEDGEMENTS:
 1. CLASS RESOURCES:
    - GUI Canvas structure & Image handling adapted from Module Lecture Notes.
    - File handling (reading jokes) conforms to class exercises.
+   
 2. EXTERNAL & AI SUPPORT:
    - Libraries: 'pyttsx3' (TTS) and 'pygame' (Audio) integrated for advanced functionality.
    - Logic: 'threading' for UI responsiveness and 'Typewriter Effect' were 
