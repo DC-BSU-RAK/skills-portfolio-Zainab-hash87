@@ -1,3 +1,25 @@
+"""
+PROGRAMMING SKILLS PORTFOLIO - EXERCISE 2: ALEXA JOKE APP
+Student Name: Zainab Afzal
+University: Bath Spa University
+
+REFERENCES & ACKNOWLEDGEMENTS:
+------------------------------
+1. CLASS MODULE RESOURCES:
+   - GUI Canvas structure and Image handling (Pillow) were implemented based 
+     on the concepts covered in the Lecture Notes (GUI & Files sections).
+   - File handling (reading jokes from txt) conforms to class exercises.
+
+2. EXTENDED LEARNING (EXTERNAL SOURCES & AI):
+   - To demonstrate advanced proficiency, I integrated the following libraries:
+     * 'pyttsx3': For Text-to-Speech (Alexa Voice) functionality.
+     * 'threading': To ensure the GUI remains responsive while audio plays.
+     * 'pygame': For mixing multiple sound effects (Laugh tracks/Clicks).
+   - The logic for "Typewriter Text Effect" and "Custom Canvas Buttons" was 
+     refined with the assistance of Generative AI.
+"""
+
+
 import tkinter as tk                 # Main GUI framework for window management
 from tkinter import messagebox       # Displays alert dialogs if needed
 import random                        # Handles random selection of jokes/coordinates
