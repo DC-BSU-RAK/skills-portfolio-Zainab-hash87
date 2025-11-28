@@ -1,31 +1,51 @@
 """
 PROGRAMMING SKILLS PORTFOLIO - EXERCISE 1: MATH QUIZ
--------------------------------------------------------
-The mandatory functions requested in the brief are encapsulated within classes:
-1. displayMenu()      -> DifficultyPage (Renders selection menu)
-2. randomInt()        -> QuizPage (Generates numbers based on level)
-3. decideOperation()  -> QuizPage (Selects + or -)
-4. displayProblem()   -> QuizPage (Updates GUI)
-5. isCorrect()        -> QuizPage (Validates answer & scores)
-6. displayResults()   -> ResultPage (Calculates grade & ranking)
+Student Name: Zainab Afzal
+University: Bath Spa University
+--------------------------------------------------------------------------------
 
-ACKNOWLEDGEMENTS:
-- Core Logic: Adapted from Module Lecture Notes.
-- Libraries: Pygame (Audio), Pillow (Image rendering).
-- AI Support: Google Gemini (Used for 'Confetti' particles & 'Slide' animation logic).
+PROJECT OVERVIEW:
+This application is a feature-rich arithmetic quiz developed using Python and Tkinter.
+It implements a complete GUI experience with difficulty selection, real-time scoring,
+and persistent high-score tracking. The system is built using Object-Oriented
+Programming (OOP) principles to ensure modularity and scalability.
+
+COMPLIANCE WITH ASSESSMENT BRIEF:
+This submission implements all mandatory functions required by the exercise brief. 
+To adhere to OOP best practices, these functions are encapsulated as class methods:
+
+1. displayMenu()      -> Implemented in DifficultyPage class to render options.
+2. randomInt()        -> Implemented in QuizPage class for difficulty-based logic.
+3. decideOperation()  -> Implemented in QuizPage class to select (+ or -).
+4. displayProblem()   -> Implemented in QuizPage class to update the GUI.
+5. isCorrect()        -> Implemented in QuizPage class for validation & scoring.
+6. displayResults()   -> Implemented in ResultPage class for grading & ranking.
+
+--------------------------------------------------------------------------------
+REFERENCES & ACKNOWLEDGEMENTS:
+--------------------------------------------------------------------------------
+1. CLASS RESOURCES:
+   - GUI Page Controller structure and JSON file handling patterns were adapted 
+     from the Module Lecture Notes and Lab Exercises.
+
+2. EXTERNAL LIBRARIES:
+   - Pygame: Integrated for managing background music and event-triggered SFX.
+   - Pillow (PIL): Utilized for high-quality image resizing and rendering on Canvas.
+
+3. AI ASSISTANCE:
+   - Google Gemini: Consulted for optimizing the 'Confetti' particle animation logic
+     and refining the recursion used in the 'Slide Transition' effects.
 """
-#Importing oOf Libraries
-import tkinter as tk            # Standard GUI library
-from tkinter import messagebox  # Pop-up alerts
-from PIL import Image, ImageTk  # Image asset handling
-import pygame                   # Audio handling
-import time                     # Timer utilities
-import random                   # Used within Class methods for dynamic question generation
-import json                     # Data persistence for Leaderboard
-import os                       # File path management
 
-
-
+# --- LIBRARY IMPORTS ---
+import tkinter as tk      # Core GUI library for window management and widget creation
+from tkinter import messagebox  # Standard dialogs for user alerts and error handling
+from PIL import Image, ImageTk  # External library (Pillow) for handling .png/.jpg assets on Canvas
+import pygame             # External library for mixing background music and sound effects
+import time               # Standard library for timing logic (supplementing Tkinter's .after)
+import random             # Standard library for generating random numbers and operators (randomInt)
+import json               # Standard library for serializing/deserializing leaderboard data
+import os                 # Standard library for robust file path handling across operating systems
 
 # --- ENVIRONMENT SETUP ---
 script_directory = os.path.dirname(os.path.abspath(__file__))
@@ -170,7 +190,7 @@ class InstructionPage(BasePage):
 
         next_btn = tk.Button(self, text="Next →", font=("Comic Sans MS", 22, "bold"), bg="#452929", fg="white", 
                              cursor="hand2", command=lambda: controller.show_frame("NamePage"))
-        self.canvas.create_window(1015, 597, window=next_btn)
+        self.canvas.create_window(1010, 602, window=next_btn)
         self.add_button_effects(next_btn)
 
 class NamePage(BasePage):
@@ -406,16 +426,22 @@ class QuizPage(BasePage):
         if self.timer_running:
             if self.timer_seconds > 0:
                 fg_color = "#D62E2E" if self.timer_seconds <= 5 else "white"
+                
+                # --- FIXED LOGIC: PLAY ONLY AT 5 SECONDS ---
                 if self.timer_seconds == 5:
                     try:
-                        pygame.mixer.Sound("clock.wav").play()
+                        clock_sound = pygame.mixer.Sound("clock.wav")
+                        self.controller.clock_channel = clock_sound.play()
                     except: pass
+                
                 self.canvas.itemconfigure(self.id_timer, text=f"Time: {self.timer_seconds}s", fill=fg_color)
                 self.timer_seconds -= 1
                 self.after(1000, self.countdown_timer)
             else:
+                # --- TIME UP: STOP EVERYTHING ---
                 self.timer_running = False
                 self.stop_clock_sound()
+                
                 self.controller.total_wrong += 1
                 self.canvas.itemconfigure(self.id_timer, text="Time's Up!", fill="red")
                 self.controller.play_sfx("wrong.mp3")
@@ -470,7 +496,7 @@ class ResultPage(BasePage):
         self.id_final_score = self.canvas.create_text(center_x, frame_y + 110, text="", font=("Comic Sans MS", 24, "bold"), fill="white")
         self.id_grade = self.canvas.create_text(center_x, frame_y + 160, text="", font=("Comic Sans MS", 22, "bold"), fill="#F8E88B")
         
-        # CORRECT / WRONG STATS ADDED BACK HERE
+        # CORRECT / WRONG STATS
         self.id_stats = self.canvas.create_text(center_x, frame_y + 210, text="", font=("Comic Sans MS", 18, "bold"), fill="white")
 
         self.id_leaderboard = self.canvas.create_text(center_x, frame_y + 320, text="", font=("Arial", 14, "bold"), fill="white", justify="center")
@@ -506,7 +532,7 @@ class ResultPage(BasePage):
         self.canvas.itemconfigure(self.id_grade, text=f"Grade: {grade}", fill=color)
         self.canvas.itemconfigure(self.id_final_score, text=f"Final Score: {score} / 100")
         
-        # UPDATE STATS TEXT HERE
+        # UPDATE STATS TEXT
         self.canvas.itemconfigure(self.id_stats, text=f"✅ Correct: {correct}   |   ❌ Wrong: {wrong}")
         
         self.update_leaderboard_file()
