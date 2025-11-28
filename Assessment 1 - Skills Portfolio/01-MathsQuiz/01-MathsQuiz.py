@@ -14,6 +14,7 @@ ACKNOWLEDGEMENTS:
 - Libraries: Pygame (Audio), Pillow (Image rendering).
 - AI Support: Google Gemini (Used for 'Confetti' particles & 'Slide' animation logic).
 """
+
 #Importing oOf Libraries
 import tkinter as tk            # Standard GUI library
 from tkinter import messagebox  # Pop-up alerts
@@ -23,6 +24,7 @@ import time                     # Timer utilities
 import random                   # Used within Class methods for dynamic question generation
 import json                     # Data persistence for Leaderboard
 import os                       # File path management
+
 
 # --- ENVIRONMENT SETUP ---
 script_directory = os.path.dirname(os.path.abspath(__file__))
@@ -167,7 +169,7 @@ class InstructionPage(BasePage):
 
         next_btn = tk.Button(self, text="Next →", font=("Comic Sans MS", 22, "bold"), bg="#452929", fg="white", 
                              cursor="hand2", command=lambda: controller.show_frame("NamePage"))
-        self.canvas.create_window(1010, 602, window=next_btn)
+        self.canvas.create_window(1015, 597, window=next_btn)
         self.add_button_effects(next_btn)
 
 class NamePage(BasePage):
@@ -422,6 +424,7 @@ class QuizPage(BasePage):
                 self.controller.total_wrong += 1
                 self.canvas.itemconfigure(self.id_timer, text="Time's Up!", fill="red")
                 self.controller.play_sfx("wrong.mp3")
+                self.canvas.itemconfigure(self.id_feedback, text="Time Up! Next Question...", fill="orange")
                 self.after(2000, self.displayProblem)
 
     def show_hint(self):
@@ -473,7 +476,7 @@ class ResultPage(BasePage):
         self.id_final_score = self.canvas.create_text(center_x, frame_y + 110, text="", font=("Comic Sans MS", 24, "bold"), fill="white")
         self.id_grade = self.canvas.create_text(center_x, frame_y + 160, text="", font=("Comic Sans MS", 22, "bold"), fill="#F8E88B")
         
-        # CORRECT / WRONG STATS
+        # CORRECT / WRONG STATS ADDED BACK HERE
         self.id_stats = self.canvas.create_text(center_x, frame_y + 210, text="", font=("Comic Sans MS", 18, "bold"), fill="white")
 
         self.id_leaderboard = self.canvas.create_text(center_x, frame_y + 320, text="", font=("Arial", 14, "bold"), fill="white", justify="center")
@@ -509,7 +512,7 @@ class ResultPage(BasePage):
         self.canvas.itemconfigure(self.id_grade, text=f"Grade: {grade}", fill=color)
         self.canvas.itemconfigure(self.id_final_score, text=f"Final Score: {score} / 100")
         
-        # UPDATE STATS TEXT
+        # UPDATE STATS TEXT HERE
         self.canvas.itemconfigure(self.id_stats, text=f"✅ Correct: {correct}   |   ❌ Wrong: {wrong}")
         
         self.update_leaderboard_file()
