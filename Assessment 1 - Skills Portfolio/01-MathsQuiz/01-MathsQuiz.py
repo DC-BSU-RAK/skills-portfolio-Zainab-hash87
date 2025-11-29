@@ -201,6 +201,7 @@ class NamePage(BasePage):
         self.controller.user_name = typed
         self.controller.show_frame("DifficultyPage")
 
+
 class DifficultyPage(BasePage):
     """
     Requirement: displayMenu
@@ -232,11 +233,18 @@ class DifficultyPage(BasePage):
         self.canvas.create_window(530, 420, window=btn_mod)
         self.canvas.create_window(700, 515, window=btn_adv)
         
+        # Back Button (Bottom Left)
         back_btn = tk.Button(self, text="← Back", font=("Comic Sans MS", 16, "bold"), bg="#5a2c2c", fg="white", 
                              width=10, cursor="hand2", command=lambda: self.controller.show_frame("NamePage"))
         self.canvas.create_window(180, 612, window=back_btn)
+
+        # Exit Button (Bottom Right) - ADDED THIS
+        exit_btn = tk.Button(self, text="Exit ✕", font=("Comic Sans MS", 16, "bold"), bg="#5a2c2c", fg="white", 
+                             width=10, cursor="hand2", command=self.controller.quit)
+        self.canvas.create_window(997, 612, window=exit_btn)
         
-        for b in [btn_easy, btn_mod, btn_adv, back_btn]: self.add_button_effects(b)
+        # Add effects to all buttons
+        for b in [btn_easy, btn_mod, btn_adv, back_btn, exit_btn]: self.add_button_effects(b)
 
     def start_game(self, level):
         self.controller.difficulty = level
@@ -246,7 +254,6 @@ class DifficultyPage(BasePage):
         self.controller.total_wrong = 0
         self.controller.frames["QuizPage"].start_new_game()
         self.controller.show_frame("QuizPage")
-
 
 class QuizPage(BasePage):
     """
