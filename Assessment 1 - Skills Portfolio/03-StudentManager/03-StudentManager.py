@@ -50,7 +50,7 @@ class GradeChart(tk.Canvas):
     A custom widget that draws a Bar Chart of student grades using standard Tkinter.
     Demonstrates advanced coordinate handling and data visualization.
     """
-    def __init__(self, parent, data, width=400, height=180, bg="white"):
+    def __init__(self, parent, data, width=800, height=150, bg="white"):
         super().__init__(parent, width=width, height=height, bg=bg, highlightthickness=0)
         self.data = data
         self.draw_chart()
@@ -62,12 +62,16 @@ class GradeChart(tk.Canvas):
     def draw_chart(self):
         self.delete("all") # Clear previous drawing
         
+        # Dimensions
+        chart_w = int(self['width'])
+        chart_h = int(self['height'])
+        
         # Title
-        self.create_text(200, 15, text="Class Performance (Grade Distribution)", 
+        self.create_text(chart_w/2, 15, text="Class Performance Distribution", 
                          font=("Segoe UI", 10, "bold"), fill="#6b7280")
 
         if not self.data: 
-            self.create_text(200, 90, text="No Data Available", font=("Segoe UI", 10), fill="#9ca3af")
+            self.create_text(chart_w/2, chart_h/2, text="No Data Available", font=("Segoe UI", 10), fill="#9ca3af")
             return
 
         # 1. Count Grades
@@ -76,43 +80,42 @@ class GradeChart(tk.Canvas):
             if s['grade'] in counts:
                 counts[s['grade']] += 1
         
-        # 2. Setup Dimensions
+        # 2. Scaling
         max_val = max(counts.values()) if counts.values() and max(counts.values()) > 0 else 1
-        bar_width = 40
-        spacing = 35
-        start_x = 50
-        base_y = 150 # The bottom line of the graph
         
-        # 3. Draw Bars
-        # Colors: Green(A) -> Blue(B) -> Yellow(C) -> Orange(D) -> Red(F)
+        # 3. Layout
+        bar_width = 60
+        spacing = 40
+        total_chart_width = 5 * (bar_width + spacing)
+        start_x = (chart_w - total_chart_width) / 2 + 20 # Center align
+        base_y = chart_h - 30
+        
+        # 4. Draw Bars
         colors = {'A': '#22c55e', 'B': '#3b82f6', 'C': '#eab308', 'D': '#f97316', 'F': '#ef4444'}
         
         for i, (grade, count) in enumerate(counts.items()):
             x = start_x + i * (bar_width + spacing)
             
-            # Calculate dynamic height (max height = 100px)
-            bar_height = (count / max_val) * 100 
+            # Calculate dynamic height
+            bar_height = (count / max_val) * (chart_h - 60)
             
             if count > 0:
                 # Draw Bar
                 self.create_rectangle(x, base_y, x + bar_width, base_y - bar_height, 
                                       fill=colors[grade], outline="")
-                # Draw Count Value on top
+                # Draw Value
                 self.create_text(x + bar_width/2, base_y - bar_height - 10, 
                                  text=str(count), font=("Segoe UI", 9, "bold"), fill="#374151")
             else:
-                # Draw a flat line for 0
+                # Draw flat line and "0" for empty grades
                 self.create_line(x, base_y, x + bar_width, base_y, fill="#e5e7eb", width=2)
+                self.create_text(x + bar_width/2, base_y - 10, text="0", font=("Segoe UI", 9), fill="#9ca3af")
 
             # Draw Label (Grade)
             self.create_text(x + bar_width/2, base_y + 15, text=grade, 
                              font=("Segoe UI", 10, "bold"), fill="#374151")
 
 class RoundedButton(tk.Canvas):
-    """
-    A custom UI component that simulates a modern rounded button.
-    Includes built-in sound effect support on click.
-    """
     def __init__(self, parent, text, command, width=220, height=45, corner_radius=20, color=BTN_NORMAL, sound_fx=None):
         super().__init__(parent, borderwidth=0, relief="flat", highlightthickness=0, bg=SIDEBAR_BG, width=width, height=height)
         self.command = command
@@ -123,11 +126,9 @@ class RoundedButton(tk.Canvas):
         self.base_text = "#e5e7eb"
         self.sound_fx = sound_fx 
 
-        # Draw the button shape and text
         self.rect = self.create_rounded_rect(2, 2, width-2, height-2, corner_radius, fill=color)
         self.text_item = self.create_text(width/2, height/2, text=text, fill=self.base_text, font=("Segoe UI", 11, "bold"))
 
-        # Bind mouse events
         self.bind("<Enter>", self.on_enter)
         self.bind("<Leave>", self.on_leave)
         self.bind("<Button-1>", self.on_click)
@@ -183,7 +184,6 @@ class StudentManagerFinal(tk.Tk):
             self.click_sound = pygame.mixer.Sound(SOUND_PATH)
             self.click_sound.set_volume(0.3)
         except Exception as e:
-            # print(f"Audio Error: {e}") # Silent error handling preferred
             self.click_sound = None
 
         # --- DATA & ASSETS ---
@@ -315,27 +315,27 @@ class StudentManagerFinal(tk.Tk):
         self.main_canvas.create_text(30, 40, text="Student Performance Records", 
                                      font=("Segoe UI", 24, "bold"), fill="white", anchor="nw")
 
-        # --- STAT CARDS ---
+        # --- ROW 1: STAT CARDS ---
         self.card_total = StatCard(self.main_canvas, "Total Students", "0", CARD_BLUE, "👥")
-        self.main_canvas.create_window(30, 110, window=self.card_total, anchor="nw", width=280, height=100)
+        self.main_canvas.create_window(30, 100, window=self.card_total, anchor="nw", width=280, height=100)
 
         self.card_avg = StatCard(self.main_canvas, "Class Average", "0%", CARD_GREEN, "📊")
-        self.main_canvas.create_window(330, 110, window=self.card_avg, anchor="nw", width=280, height=100)
+        self.main_canvas.create_window(330, 100, window=self.card_avg, anchor="nw", width=280, height=100)
 
         self.card_top = StatCard(self.main_canvas, "Top Performer", "-", CARD_GOLD, "🏆")
-        self.main_canvas.create_window(630, 110, window=self.card_top, anchor="nw", width=280, height=100)
+        self.main_canvas.create_window(630, 100, window=self.card_top, anchor="nw", width=280, height=100)
 
-        # --- GRAPH WIDGET (NEW ADDITION) ---
+        # --- ROW 2: GRAPH WIDGET (Below Cards) ---
         self.chart_card = tk.Frame(self.main_canvas, bg="white", bd=2, relief="groove")
-        self.chart_widget = GradeChart(self.chart_card, self.students, width=350, height=180)
+        self.chart_widget = GradeChart(self.chart_card, self.students, width=880, height=150)
         self.chart_widget.pack(fill="both", expand=True)
-        # Positioned to the right of the stat cards
-        self.main_canvas.create_window(950, 110, window=self.chart_card, anchor="ne", width=380, height=180)
+        self.main_canvas.create_window(30, 220, window=self.chart_card, anchor="nw", width=880, height=160)
 
-        # --- DATA TABLE ---
+        # --- ROW 3: DATA TABLE ---
         self.table_card = tk.Frame(self.main_canvas, bg="white", bd=2, relief="groove")
         self.main_canvas.bind("<Configure>", self.on_resize)
-        self.table_window = self.main_canvas.create_window(30, 310, window=self.table_card, anchor="nw", width=940, height=380)
+        # Position moved down to 400 to accommodate graph
+        self.table_window = self.main_canvas.create_window(30, 400, window=self.table_card, anchor="nw", width=940, height=300)
 
         style = ttk.Style()
         style.theme_use("clam")
@@ -363,9 +363,13 @@ class StudentManagerFinal(tk.Tk):
 
     def on_resize(self, event):
         new_width = event.width - 60  
-        new_height = event.height - 340 
-        if new_width > 500 and new_height > 200:
+        new_height = event.height - 420 # Adjusted for Graph + Cards
+        if new_width > 500 and new_height > 150:
             self.main_canvas.itemconfigure(self.table_window, width=new_width, height=new_height)
+            # Resize graph width dynamically
+            self.main_canvas.itemconfigure(self.chart_card, width=new_width)
+            self.chart_widget.configure(width=new_width)
+            self.chart_widget.draw_chart()
 
     def load_data(self):
         self.students = []
