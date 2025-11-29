@@ -254,9 +254,13 @@ class StudentManagerFinal(tk.Tk):
         right_box.pack(side="right", padx=30)
         
         def logout():
-            self.play_click()
-            if messagebox.askyesno("Logout", "Are you sure you want to logout?"):
+            self.play_click() # Plays sound on Click "Logout"
+            # Ask confirmation
+            confirm = messagebox.askyesno("Logout", "Are you sure you want to logout?")
+            if confirm:
                 self.destroy()
+            else:
+                self.play_click() # Plays sound if "No" (Return to app)
 
         def show_profile():
             self.play_click()
@@ -334,7 +338,6 @@ class StudentManagerFinal(tk.Tk):
         # --- ROW 3: DATA TABLE ---
         self.table_card = tk.Frame(self.main_canvas, bg="white", bd=2, relief="groove")
         self.main_canvas.bind("<Configure>", self.on_resize)
-        # Position moved down to 400 to accommodate graph
         self.table_window = self.main_canvas.create_window(30, 400, window=self.table_card, anchor="nw", width=940, height=300)
 
         style = ttk.Style()
