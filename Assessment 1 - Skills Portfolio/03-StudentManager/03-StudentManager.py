@@ -1,19 +1,23 @@
 """
-EXERCISE 3: STUDENT MANAGER SYSTEM ("Core + Extensions Completed")
+EXERCISE 3: STUDENT MANAGER SYSTEM ("Core + Extensions + Data Viz")
 -------------------
-FEATURES: Unified Dashboard with View, Search, Sort, Add, Update, & Delete.
+FEATURES: 
+- Unified Dashboard with View, Search, Sort, Add, Update, & Delete.
+- REAL-TIME ANALYTICS: Visual Bar Chart for Grade Distribution.
+- Custom UI: Rounded buttons, Stat Cards, and Modern Table.
+
 REFERENCES:
 1. Logic: Core GUI & File handling adapted from Module Lecture Notes.
-2. Advanced: Pillow/Pygame & Generative AI used for UI polish (Icons/Sound).
+2. Advanced: Pillow/Pygame used for assets; Custom Canvas drawing used for 
+   Graph visualization (No matplotlib required).
 """
 
-#Importing of libraries 
-import tkinter as tk                           # Standard GUI library
-from tkinter import ttk, messagebox            # Advanced widgets and dialogs
+import tkinter as tk                       # Standard GUI library
+from tkinter import ttk, messagebox        # Advanced widgets and dialogs
 from PIL import Image, ImageTk, ImageEnhance   # Image processing (Pillow)
-import pygame                                  # Sound effects
-import os                                      # File path management
-from datetime import datetime                  # For timestamps
+import pygame                              # Sound effects
+import os                                  # File path management
+from datetime import datetime              # For timestamps
 
 # --- CONSTANTS & THEME CONFIGURATION ---
 OXFORD_BLUE = "#002147"
@@ -40,6 +44,69 @@ BG_PATH   = os.path.join(BASE_DIR, "oxford-bg.jpg")
 SOUND_PATH = os.path.join(BASE_DIR, "tab.mp3") 
 
 # --- CUSTOM WIDGET CLASSES ---
+
+class GradeChart(tk.Canvas):
+    """
+    A custom widget that draws a Bar Chart of student grades using standard Tkinter.
+    Demonstrates advanced coordinate handling and data visualization.
+    """
+    def __init__(self, parent, data, width=400, height=180, bg="white"):
+        super().__init__(parent, width=width, height=height, bg=bg, highlightthickness=0)
+        self.data = data
+        self.draw_chart()
+
+    def update_data(self, new_data):
+        self.data = new_data
+        self.draw_chart()
+
+    def draw_chart(self):
+        self.delete("all") # Clear previous drawing
+        
+        # Title
+        self.create_text(200, 15, text="Class Performance (Grade Distribution)", 
+                         font=("Segoe UI", 10, "bold"), fill="#6b7280")
+
+        if not self.data: 
+            self.create_text(200, 90, text="No Data Available", font=("Segoe UI", 10), fill="#9ca3af")
+            return
+
+        # 1. Count Grades
+        counts = {'A': 0, 'B': 0, 'C': 0, 'D': 0, 'F': 0}
+        for s in self.data:
+            if s['grade'] in counts:
+                counts[s['grade']] += 1
+        
+        # 2. Setup Dimensions
+        max_val = max(counts.values()) if counts.values() and max(counts.values()) > 0 else 1
+        bar_width = 40
+        spacing = 35
+        start_x = 50
+        base_y = 150 # The bottom line of the graph
+        
+        # 3. Draw Bars
+        # Colors: Green(A) -> Blue(B) -> Yellow(C) -> Orange(D) -> Red(F)
+        colors = {'A': '#22c55e', 'B': '#3b82f6', 'C': '#eab308', 'D': '#f97316', 'F': '#ef4444'}
+        
+        for i, (grade, count) in enumerate(counts.items()):
+            x = start_x + i * (bar_width + spacing)
+            
+            # Calculate dynamic height (max height = 100px)
+            bar_height = (count / max_val) * 100 
+            
+            if count > 0:
+                # Draw Bar
+                self.create_rectangle(x, base_y, x + bar_width, base_y - bar_height, 
+                                      fill=colors[grade], outline="")
+                # Draw Count Value on top
+                self.create_text(x + bar_width/2, base_y - bar_height - 10, 
+                                 text=str(count), font=("Segoe UI", 9, "bold"), fill="#374151")
+            else:
+                # Draw a flat line for 0
+                self.create_line(x, base_y, x + bar_width, base_y, fill="#e5e7eb", width=2)
+
+            # Draw Label (Grade)
+            self.create_text(x + bar_width/2, base_y + 15, text=grade, 
+                             font=("Segoe UI", 10, "bold"), fill="#374151")
 
 class RoundedButton(tk.Canvas):
     """
@@ -116,7 +183,7 @@ class StudentManagerFinal(tk.Tk):
             self.click_sound = pygame.mixer.Sound(SOUND_PATH)
             self.click_sound.set_volume(0.3)
         except Exception as e:
-            print(f"Audio Error: {e}")
+            # print(f"Audio Error: {e}") # Silent error handling preferred
             self.click_sound = None
 
         # --- DATA & ASSETS ---
@@ -236,6 +303,7 @@ class StudentManagerFinal(tk.Tk):
         if self.bg_photo:
             self.main_canvas.create_image(0, 0, image=self.bg_photo, anchor="nw")
 
+        # --- SEARCH BAR ---
         search_card = tk.Frame(self.main_canvas, bg="white", bd=1, relief="solid", padx=10, pady=5)
         tk.Label(search_card, text="Search:", font=("Segoe UI", 10, "bold"), bg="white", fg="#666").pack(side="left")
         self.search_var = tk.StringVar()
@@ -247,18 +315,27 @@ class StudentManagerFinal(tk.Tk):
         self.main_canvas.create_text(30, 40, text="Student Performance Records", 
                                      font=("Segoe UI", 24, "bold"), fill="white", anchor="nw")
 
+        # --- STAT CARDS ---
         self.card_total = StatCard(self.main_canvas, "Total Students", "0", CARD_BLUE, "👥")
-        self.main_canvas.create_window(30, 110, window=self.card_total, anchor="nw", width=300, height=100)
+        self.main_canvas.create_window(30, 110, window=self.card_total, anchor="nw", width=280, height=100)
 
         self.card_avg = StatCard(self.main_canvas, "Class Average", "0%", CARD_GREEN, "📊")
-        self.main_canvas.create_window(350, 110, window=self.card_avg, anchor="nw", width=300, height=100)
+        self.main_canvas.create_window(330, 110, window=self.card_avg, anchor="nw", width=280, height=100)
 
         self.card_top = StatCard(self.main_canvas, "Top Performer", "-", CARD_GOLD, "🏆")
-        self.main_canvas.create_window(670, 110, window=self.card_top, anchor="nw", width=300, height=100)
+        self.main_canvas.create_window(630, 110, window=self.card_top, anchor="nw", width=280, height=100)
 
+        # --- GRAPH WIDGET (NEW ADDITION) ---
+        self.chart_card = tk.Frame(self.main_canvas, bg="white", bd=2, relief="groove")
+        self.chart_widget = GradeChart(self.chart_card, self.students, width=350, height=180)
+        self.chart_widget.pack(fill="both", expand=True)
+        # Positioned to the right of the stat cards
+        self.main_canvas.create_window(950, 110, window=self.chart_card, anchor="ne", width=380, height=180)
+
+        # --- DATA TABLE ---
         self.table_card = tk.Frame(self.main_canvas, bg="white", bd=2, relief="groove")
         self.main_canvas.bind("<Configure>", self.on_resize)
-        self.table_window = self.main_canvas.create_window(30, 240, window=self.table_card, anchor="nw", width=940, height=450)
+        self.table_window = self.main_canvas.create_window(30, 310, window=self.table_card, anchor="nw", width=940, height=380)
 
         style = ttk.Style()
         style.theme_use("clam")
@@ -286,7 +363,7 @@ class StudentManagerFinal(tk.Tk):
 
     def on_resize(self, event):
         new_width = event.width - 60  
-        new_height = event.height - 270 
+        new_height = event.height - 340 
         if new_width > 500 and new_height > 200:
             self.main_canvas.itemconfigure(self.table_window, width=new_width, height=new_height)
 
@@ -348,6 +425,10 @@ class StudentManagerFinal(tk.Tk):
         self.card_total.update_value(str(count))
         self.card_avg.update_value(f"{avg}%")
         self.card_top.update_value(top_student if count > 0 else "-")
+        
+        # --- UPDATE GRAPH ---
+        if hasattr(self, 'chart_widget'):
+            self.chart_widget.update_data(data)
 
     def filter_data(self, *args):
         q = self.search_var.get().lower()
